@@ -6,16 +6,19 @@
 
 #### 1. ID, призначення, actors, entry conditions
 
-ID: S-01Призначення: Контрольована точка входу/ідентифікації користувача з пулу 3 фіксованих облікових записів системи (без реєстрації та сторонніх провайдерів). Actors: Team Member (TM1, TM2), Team Lead (TL).Entry conditions: Запуск вебзастосунку; відсутність активної сесії / неавтентифікований стан.
+ID: S-01
+Призначення: Демонстраційна межа автентифікації (Simulation Boundary) для навчального тестування та перегляду макета/прототипу під одним із 3 фіксованих облікових записів (без реєстрації, паролів чи сторонніх SSO-провайдерів). 
+Actors: Team Member (TM1, TM2), Team Lead (TL).
+Entry conditions: Запуск вебзастосунку; демонстраційний старт сесії під обраним профілем.
 
 #### 2. Visible data
 
-User List / Profiles: Обов’язкове. Відображає рівно 3 доступні облікові записи (Team Lead, Team Member 1, Team Member 2).  Відсутнє значення не допускається (системна константа).Selected User Indicator: Необов’язкове до моменту вибору. Якщо не вибрано — відображається плейсхолдер "Select user". [PROPOSED: D-01]
+User List / Profiles: Обов’язкове. Відображає рівно 3 доступні облікові записи (Team Lead, Team Member 1, Team Member 2). Відсутнє значення не допускається (системна константа). Selected User Indicator: Необов’язкове до моменту вибору. Якщо не вибрано — відображається плейсхолдер "Select user". [APPROVED: D-02]
 
 #### 3. Controls
 
-- **C-01.1 |** User Selector | Radio group / Dropdown | Visible: Always; Enabled: Always | Trigger: Клік по елементу списку | Результат: Фіксація обраного акаунта як активного для входу. [PROPOSED: D-01]
-- **C-01.2 |** Login Button | Primary Action Button | Visible: Always; Enabled: Коли обрано користувача в C-01.1 (Disabled, якщо значення не обрано) | Trigger: Click | Результат: Ініціалізація сесії обраного користувача, виклик переходу T-01. [APPROVED: AD-02]
+- **C-01.1 |** User Selector | Radio group / Dropdown | Visible: Always; Enabled: Always | Trigger: Клік по елементу списку | Результат: Фіксація обраного акаунта як активного для входу в демонстраційний прототип. [APPROVED: D-02]
+- **C-01.2 |** Login Button | Primary Action Button | Visible: Always; Enabled: Коли обрано користувача в C-01.1 (Disabled, якщо значення не обрано) | Trigger: Click | Результат: Ініціалізація сесії обраного користувача, виклик переходу T-01. [APPROVED: D-02]
 
 #### 4. States
 
@@ -48,7 +51,11 @@ ID: S-02 (Базовий контейнер із трьома станами: S-
 
 #### 4. States
 
-S-02-A (Default state): Активний таб All Issues. Відображаються всі записи з БД незалежно від статусу чи пріоритету.S-02-B (Filtered state): Активний таб Important Issues. У таблиці рендеряться виключно записи, які задовольняють умові: Priority IN [High, Critical] AND Status != Closed.Empty Filter Sub-state: Якщо жодна заявка не підпадає під умову фільтра, таблиця приховується і виводиться текст: "No important open issues found".S-02-C (Empty state): Повна відсутність зареєстрованих issues у системі. Таблиця та фільтри приховані; по центру екрана виводиться текст: "No issues found. Create the first issue to get started." та активна кнопка Create Issue (C-02.3). Validation / Error states: Збій завантаження списку даних (Network 500) → текст помилки: "Failed to load issues. Please refresh the page.".
+S-02-A (Default state): Активний таб All Issues. Відображаються всі записи з БД незалежно від статусу чи пріоритету.
+Порядок відображення за замовчуванням: за часом створення (Created_at DESC), що гарантує миттєву появу новоствореної заявки в першому рядку таблиці (покриває TC-01). Для статичної демонстрації та за наявності сортування за пріоритетом рядки групуються: Critical → High → Normal → Low → Not Set (покриває специфікацію брифу).
+Empty Filter Sub-state: Якщо жодна заявка не підпадає під умову фільтра, таблиця приховується і виводиться текст: "No important open issues found".
+S-02-C (Empty state): Повна відсутність зареєстрованих issues у системі. Таблиця та фільтри приховані; по центру екрана виводиться текст: "No issues found. Create the first issue to get started." та активна кнопка Create Issue (C-02.3). 
+Validation / Error states: Збій завантаження списку даних (Network 500) → текст помилки: "Failed to load issues. Please refresh the page.".
 
 #### 5. Transitions
 
@@ -73,7 +80,7 @@ ID: M-01Призначення: Модальне вікно введення о�
 - **C-01M.1 |** Title Input | Text Input | Visible: Always; Enabled: Always | Trigger: Введення тексту | Результат: Зміна значення Title; блокування вводу понад 50 символів (або лічильник). [APPROVED: AD-04]
 - **C-01M.2 |** Description Input | Textarea | Visible: Always; Enabled: Always | Trigger: Введення тексту | Результат: Зміна значення Description. 
 - **C-01M.3 |** Create Button | Primary Action Button | Visible: Always; Enabled: Always | Trigger: Click | Результат: Валідація форми. Якщо успішно — запис у БД, закриття модалки, виклик переходу T-05. 
-- **C-01M.4 |** Cancel / Close Button | Secondary Action Button / Icon | Visible: Always; Enabled: Always | Trigger: Click | Результат: Закриття модального вікна без збереження даних, виклик переходу T-03. [PROPOSED: D-02]
+- **C-01M.4 |** Cancel / Close Button | Secondary Action Button / Icon | Visible: Always; Enabled: Always | Trigger: Click | Результат: Закриття модального вікна без збереження даних, виклик переходу T-03. [APPROVED: D-01]
 
 #### 4. States
 
@@ -91,11 +98,14 @@ Incoming: T-02 (із будь-якого стану S-02).Outgoing: T-03 (до �
 
 #### 1. ID, призначення, actors, entry conditions
 
-ID: S-03Призначення: Детальний перегляд інформації про заявку, виконання дозволених змін статусів (усіма користувачами), призначення виконавця та пріоритету (лише Team Lead), додавання та перегляд коментарів. Actors: Team Member, Team Lead.Entry conditions: Клік по рядку заявки на екрані S-02 (перехід T-06).
+ID: S-03
+Призначення: Детальний перегляд інформації про заявку, виконання дозволених змін статусів (виключно призначеним Assignee згідно з AC-07.4, DEF-01), призначення виконавця та пріоритету (лише Team Lead), додавання та перегляд коментарів. 
+Actors: Team Member, Team Lead.
+Entry conditions: Клік по рядку заявки на екрані S-02 (перехід T-06).
 
 #### 2. Visible data
 
-Issue ID: Обов’язкове. Відображення ідентифікатора. Title: Обов’язкове. Текстова назва проблеми. Description: Обов’язкове. Повний опис дефекту. Author: Обов’язкове. Ім'я користувача, який створив заявку. Created at: Обов’язкове. Дата та час створення у форматі YYYY-MM-DD HH:mm. Status: Обов’язкове. Поточний статус (Open, In Progress, Resolved, Closed). Priority: Обов’язкове. Значення: Low, Normal, High, Critical. Вигляд відсутнього значення: "Not Set". Assignee: Необов’язкове. Вигляд відсутнього значення: "—" (прочерк / "Unassigned"). Comments List: Стрічка коментарів. Для кожного коментаря обов’язково відображаються:Comment Author: Обов’язкове. Comment Date/Time: Обов’язкове. Comment Text: Обов’язкове. Вигляд порожньої стрічки: "No comments yet". [PROPOSED: D-03]
+Issue ID: Обов’язкове. Відображення ідентифікатора. Title: Обов’язкове. Текстова назва проблеми. Description: Обов’язкове. Повний опис дефекту. Author: Обов’язкове. Ім'я користувача, який створив заявку. Created at: Обов’язкове. Дата та час створення у форматі YYYY-MM-DD HH:mm. Status: Обов’язкове. Поточний статус (Open, In Progress, Resolved, Closed). Priority: Обов’язкове. Значення: Low, Normal, High, Critical. Вигляд відсутнього значення: "Not Set". Assignee: Необов’язкове. Вигляд відсутнього значення: "—" (прочерк / "Unassigned"). Comments List: Стрічка коментарів. Для кожного коментаря обов’язково відображаються:Comment Author: Обов’язкове. Comment Date/Time: Обов’язкове. Comment Text: Обов’язкове. Вигляд порожньої стрічки: "No comments yet". [APPROVED: D-03]
 
 #### 3. Controls
 
@@ -252,12 +262,21 @@ Incoming: T-06 (з екрана S-02-A або S-02-B).Outgoing:T-07 → пове
 - **Expected visible result:**  Після першої дії значення Assignee оновлюється на "Team Member 1". Після другої дії значення повертається у стан "—" (Unassigned). Сторінка не перезавантажується повністю.
 - **Що НЕ МОЖНА довести цим тестом:**  Не можна довести відправку поштового чи push-сповіщення призначеному користувачу (повідомлення out of scope).
 
-### TC-08: Заборона зміни Assignee та Priority для ролі Team Member
+### TC-08: Рольові обмеження для ролей Team Member та Non-assignee
+
+#### TC-08a: Заборона зміни Assignee та Priority для ролі Team Member
 - **Actor / Context:**  Team Member (TM1 або TM2) на екрані S-03.
-- **Precondition:**  Заявка відкрита на перегляд.
+- **Precondition:**  Будь-яка заявка відкрита на перегляд.
 - **Action:**  Спроба взаємодії з полями Assignee та Priority.
 - **Expected visible result:**  Поля Assignee та Priority відображаються як простий статичний текст (або повністю заблоковані disabled елементи). Кнопки дій Apply Assignee (C-03.5) та Apply Priority (C-03.7) фізично відсутні на екрані. Клік по блоках не викликає дій (T-12 заблоковано).
-- **Що НЕ МОЖНА довести цим тестом:**  Не можна довести стійкість API до прямих HTTP POST/PUT запитів в обхід UI без тестування бекенду (Postman/curl).
+- **Що НЕ МОЖНА довести цим тестом:**  Не можна довести стійкість API до прямих HTTP POST/PUT запитів в обхід UI без тестування бекенду.
+
+#### TC-08b: Заборона зміни статусу користувачем, який не є поточним Assignee (AC-07.4, DEF-01)
+- **Actor / Context:**  Користувач non-assignee (Team Member non-assignee або Team Lead non-assignee, наприклад Lead відкриває заявку #101, призначену на TM1).
+- **Precondition:**  Заявка відкрита на S-03; поле Assignee містить іншого користувача або Unassigned.
+- **Action:**  Спроба взаємодії з селектором статусу C-03.2 або кнопкою C-03.3.
+- **Expected visible result:**  Селектор статусу C-03.2 заблокований (disabled або рендериться як статичний неклікабельний бейдж); кнопка Apply Status прихована або неактивна; клік не викликає дій (T-14a блокує перехід).
+- **Що НЕ МОЖНА довести цим тестом:**  Не можна довести серверне перехоплення спроби маніпуляції DTO на рівні контролера бекенду.
 
 ### TC-09: Встановлення пріоритету роллю Team Lead
 - **Actor / Context:**  Team Lead на екрані S-03.
