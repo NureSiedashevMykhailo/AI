@@ -1,0 +1,25 @@
+I created the editable low-fidelity design on one page.
+
+### Created screens and state references
+- S-01: Authentication Boundary
+- S-02-A: Issues List (All Issues)
+- S-02-B: Issues List (Important Filter)
+- S-02-C: Issues List (Empty State)
+- M-01: Create Issue Modal (Overlay)
+- S-03: Issue Details Screen
+- State Reference & Annotation Frames (outside product canvas)
+
+### Reused components
+The design file contains 19 native components, with 73 instances used across the design: status/priority badges, buttons, textarea inputs and comment cards.
+
+### Requirements not represented
+- No prototype interactions or backend logic were implemented in static generation, as requested.
+- T-10..T-17 remain grouped textual intent because the brief does not define each transition individually.
+
+### Assumptions and limitations
+- Three full canonical screens; alternate list and role/status states stay compact.
+- Critical issues are grouped together to follow the stated priority sort.
+- Unspecified detail metadata uses placeholders.
+- Grayscale throughout, except the approved modal validation red.
+- Reviewer annotations remain outside product frames.
+- Persistence, authentication and server permissions were not tested.

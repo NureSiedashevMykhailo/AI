@@ -1,4 +1,4 @@
-# Developer-Verifiable Screen Contracts: Mini Issue Tracker (Release MVP)
+# Developer-Verifiable Screen Contracts: Mini Issue Tracker (Release MVP) — v1.0 APPROVED
 
 ## 1. Специфікація контрактів екранів та станів (Screen Contracts)
 
@@ -100,8 +100,8 @@ Issue ID: Обов’язкове. Відображення ідентифіка
 #### 3. Controls
 
 - **C-03.1 |** Back to List Link/Button | Navigation Control | Visible: Always; Enabled: Always | Trigger: Click | Результат: Повернення до списку S-02 зі збереженням попереднього фільтра (виклик T-07). 
-- **C-03.2 |** Status Transition Selector | Dropdown / Select | Visible: Always; Enabled: Якщо поточний статус != Closed | Trigger: Вибір значення зі списку дозволених переходів | Результат: Вибір цільового статусу згідно з BR-08.1. 
-- **C-03.3 |** Apply Status Button | Secondary Action Button | Visible: Always; Enabled: Коли в C-03.2 обрано новий валідний статус (інакше Disabled) | Trigger: Click | Результат: Фіксація нового статусу на сервері, оновлення поля Status на сторінці (виклики T-14, T-15, T-16, T-17). [APPROVED: AD-01, AD-06]
+- **C-03.2 |** Status Transition Selector | Dropdown / Select | Visible: Always; Enabled: Лише якщо поточний користувач == Assignee даного issue та статус != Closed (для інших користувачів рендериться як Read-Only бейдж без кнопок зміни згідно з AC-07.4, DEF-01) | Trigger: Вибір значення зі списку дозволених переходів | Результат: Вибір цільового статусу згідно з BR-08.1. [S1: AC-07.4, BR-08.1; DEF-01]
+- **C-03.3 |** Apply Status Button | Secondary Action Button | Visible: Лише для Assignee; Enabled: Коли в C-03.2 обрано новий валідний статус (для non-assignee прихована/disabled) | Trigger: Click | Результат: Фіксація нового статусу на сервері, оновлення поля Status на сторінці (виклики T-14, T-15, T-16, T-17). [S1: AC-07.4; DEF-01, AD-06]
 - **C-03.4 |** Assignee Selector | Dropdown / Select | Visible: Always; Enabled: Лише якщо актор = Team Lead (для Team Member — Disabled / Read-Only текст) | Trigger: Вибір члена команди (TL, TM1, TM2) або "Unassigned" | Результат: Вибір виконавця або скидання поля. 
 - **C-03.5 |** Apply Assignee Button | Secondary Action Button | Visible & Enabled: Лише якщо актор = Team Lead (для Team Member повністю прихована) | Trigger: Click | Результат: Збереження нового виконавця або очищення поля (виклики T-10, T-11). Для Team Member недоступна (блокування T-12). 
 - **C-03.6 |** Priority Selector | Dropdown / Select | Visible: Always; Enabled: Лише якщо актор = Team Lead (для Team Member — Disabled / Read-Only текст) | Trigger: Вибір із допустимих встановлених значень (Low, Normal, High, Critical) | Результат: Вибір нового значення пріоритету. 
@@ -123,7 +123,9 @@ Incoming: T-06 (з екрана S-02-A або S-02-B).Outgoing:T-07 → пове
 
 ## 2. Матриця прав доступу (Permission Matrix)
 
-Матриця враховує дві базові глобальні ролі (Team Member, Team Lead) та контекстне відношення користувача до конкретного issue (Assignee чи Non-assignee).Примітка щодо зміни статусу: Відповідно до узгодженого рішення AD-01 («Переводити задачу можуть всі»), обмеження AC-07.4 щодо монополії лише виконавця знято: будь-який автентифікований член команди може змінювати статус згідно з допустимими переходами BR-08.1. Водночас Team Lead не має автоматичних безумовних прав встановлювати будь-який статус (він зобов'язаний дотримуватися тієї ж матриці переходів BR-08.1 без перескакувань).
+Матриця враховує дві базові глобальні ролі (Team Member, Team Lead) та контекстне відношення користувача до конкретного issue (Assignee чи Non-assignee).
+
+Примітка щодо зміни статусу: Відповідно до вихідної вимоги AC-07.4 та затвердженого виправлення DEF-01 (скасування застарілої пропозиції AD-01), право зміни статусу належить суворо призначеному виконавцю (Assignee Only). Користувач, який не є виконавцем (включно з Team Lead, якщо він не призначив самого себе), не має права змінювати статус заявки (селектор заблокований або відображається статичний бейдж). Зміна здійснюється виключно за 4 дозволеними переходами матриці BR-08.1.
 
 | Дія (Action) | Team Member (Non-assignee) | Team Member (Assignee) | Team Lead (Non-assignee) | Team Lead (Assignee) | Підстава / Source & Decision |
 |---|---|---|---|---|---|
@@ -162,39 +164,40 @@ Incoming: T-06 (з екрана S-02-A або S-02-B).Outgoing:T-07 → пове
 
 | Source ID / Пункт | UIR-ID | Screen / State | C-ID / Annotation | Test ID | Verification Level |
 |---|---|---|---|---|---|
-| US-01 (AC-01.1)UIR-01.1M-01C-01M.1, C-01M.2TC-01Макет, Прототип, Реалізація | | | | | |
-| US-01 (AC-01.2)UIR-01.2M-01C-01M.1 (Annotation: required)TC-02Макет, Прототип, Реалізація | | | | | |
-| US-01 (AC-01.3)UIR-01.3M-01C-01M.2 (Annotation: required)TC-03Макет, Прототип, Реалізація | | | | | |
-| US-01 (AC-01.4)UIR-01.4M-01 → S-02-AAnnotation: auto-fields (ID, Open, Time, Author)TC-01Прототип, Реалізація | | | | | |
-| US-01 (AC-01.5)UIR-01.5S-02-A, S-03Visible data: Priority = "Not Set"TC-01Макет, Прототип, Реалізація | | | | | |
-| US-02 (AC-02.1)UIR-02.1S-02-ATable containerTC-04Макет, Прототип, Реалізація | | | | | |
-| US-02 (AC-02.2)UIR-02.2S-02-AColumns: ID, Title, Status, Priority, AssigneeTC-04Макет, Реалізація | | | | | |
-| US-02 (AC-02.3)UIR-02.3S-02-A, S-02-BC-02.4 (Row click)TC-05Прототип, Реалізація | | | | | |
-| US-02 (AC-02.4)UIR-02.4S-03Fields: ID, Title, Desc, Status, Priority, Assignee, Author, Created_atTC-05Макет, Реалізація | | | | | |
-| US-02 (AC-02.5)UIR-02.5S-02-CEmpty State container & messageTC-06Макет, Прототип, Реалізація | | | | | |
-| US-03 (Критерій 1)UIR-03.1S-03C-03.4 (Single-select dropdown)TC-07Макет, Прототип, Реалізація | | | | | |
-| US-03 (Критерій 2)UIR-03.2S-03C-03.4 (Options: TM1, TM2, TL, Unassigned)TC-07Макет, Реалізація | | | | | |
-| US-03 (Критерій 3)UIR-03.3S-03C-03.4, C-03.5 (Disabled/Hidden for Team Member)TC-08Макет, Прототип, Реалізація | | | | | |
-| US-03 (Критерій 4)UIR-03.4S-03Visible data: Assignee fieldTC-07Макет, Реалізація | | | | | |
-| US-04 (AC-04.1)UIR-04.1S-03C-03.6 (Options: Low, Normal, High, Critical)TC-09Макет, Прототип, Реалізація | | | | | |
-| US-04 (AC-04.2)UIR-04.2S-03C-03.6, C-03.7 (Disabled/Hidden for Team Member)TC-08Макет, Прототип, Реалізація | | | | | |
-| US-05 (AC-05.1)UIR-05.1S-02, S-03Status indicator badgeTC-04, TC-05Макет, Реалізація | | | | | |
-| US-05 (AC-05.2)UIR-05.2S-03Visible data: Status valueTC-05Макет, Реалізація | | | | | |
-| US-05 (AC-05.3)UIR-05.3S-02-A, S-02-BColumn: StatusTC-04Макет, Реалізація | | | | | |
-| US-06 (AC-06.1)UIR-06.1S-03C-03.9 (Disabled if comment empty)TC-10Макет, Прототип, Реалізація | | | | | |
-| US-06 (AC-06.2)UIR-06.2S-03Comments list viewTC-11Макет, Прототип, Реалізація | | | | | |
-| US-06 (AC-06.3)UIR-06.3S-03Comment Item: Author textTC-11Макет, Реалізація | | | | | |
-| US-06 (AC-06.4)UIR-06.4S-03Comment Item: Date/Time textTC-11Макет, Реалізація | | | | | |
-| US-06 (AC-06.5)UIR-06.5S-03Annotation: Failed save error bannerTC-12Макет, Прототип, Реалізація | | | | | |
-| US-07 (AC-07.1)UIR-07.1S-02, S-03Status = Open on newly created issueTC-01Реалізація | | | | | |
-| US-07 (AC-07.2)UIR-07.2S-03C-03.2 (Allowed values: Open, In Progress, Resolved, Closed)TC-13Макет, Прототип, Реалізація | | | | | |
-| US-07 (AC-07.3)UIR-07.3S-03Updated status display persistenceTC-13Прототип, Реалізація | | | | | |
-| US-07 (AC-07.5)UIR-07.5S-03C-03.2 (Strict transitions BR-08.1)TC-14Макет, Прототип, Реалізація | | | | | |
-| US-08 (AC-08.1)UIR-08.1S-02-BRow filter: High and not ClosedTC-15Макет, Прототип, Реалізація | | | | | |
-| US-08 (AC-08.2)UIR-08.2S-02-BRow filter: Critical and not ClosedTC-15Макет, Прототип, Реалізація | | | | | |
-| US-08 (AC-08.3)UIR-08.3S-02-BRow exclusion: Low / Normal hiddenTC-15Прототип, Реалізація | | | | | |
-| US-08 (AC-08.4)UIR-08.4S-02-BRow exclusion: Closed hiddenTC-15Прототип, Реалізація | | | | | |
-| AD-04 (Decision)UIR-AD.4M-01C-01M.1 (Max length = 50 limit)TC-16Макет, Прототип, Реалізація | | | | | |
+| US-01 (AC-01.1) | UIR-01.1 | M-01 | C-01M.1, C-01M.2 | TC-01 | Макет, Прототип, Реалізація |
+| US-01 (AC-01.2) | UIR-01.2 | M-01 | C-01M.1 (Annotation: required) | TC-02 | Макет, Прототип, Реалізація |
+| US-01 (AC-01.3) | UIR-01.3 | M-01 | C-01M.2 (Annotation: required) | TC-03 | Макет, Прототип, Реалізація |
+| US-01 (AC-01.4) | UIR-01.4 | M-01 → S-02-A | Annotation: auto-fields (ID, Open, Time, Author) | TC-01 | Прототип, Реалізація |
+| US-01 (AC-01.5) | UIR-01.5 | S-02-A, S-03 | Visible data: Priority = "Not Set" | TC-01 | Макет, Прототип, Реалізація |
+| US-02 (AC-02.1) | UIR-02.1 | S-02-A | Table container | TC-04 | Макет, Прототип, Реалізація |
+| US-02 (AC-02.2) | UIR-02.2 | S-02-A | Columns: ID, Title, Status, Priority, Assignee | TC-04 | Макет, Реалізація |
+| US-02 (AC-02.3) | UIR-02.3 | S-02-A, S-02-B | C-02.4 (Row click) | TC-05 | Прототип, Реалізація |
+| US-02 (AC-02.4) | UIR-02.4 | S-03 | Fields: ID, Title, Desc, Status, Priority, Assignee, Author, Created_at | TC-05 | Макет, Реалізація |
+| US-02 (AC-02.5) | UIR-02.5 | S-02-C | Empty State container & message | TC-06 | Макет, Прототип, Реалізація |
+| US-03 (Критерій 1) | UIR-03.1 | S-03 | C-03.4 (Single-select dropdown) | TC-07 | Макет, Прототип, Реалізація |
+| US-03 (Критерій 2) | UIR-03.2 | S-03 | C-03.4 (Options: TM1, TM2, TL, Unassigned) | TC-07 | Макет, Реалізація |
+| US-03 (Критерій 3) | UIR-03.3 | S-03 | C-03.4, C-03.5 (Disabled/Hidden for Team Member) | TC-08 | Макет, Прототип, Реалізація |
+| US-03 (Критерій 4) | UIR-03.4 | S-03 | Visible data: Assignee field | TC-07 | Макет, Реалізація |
+| US-04 (AC-04.1) | UIR-04.1 | S-03 | C-03.6 (Options: Low, Normal, High, Critical) | TC-09 | Макет, Прототип, Реалізація |
+| US-04 (AC-04.2) | UIR-04.2 | S-03 | C-03.6, C-03.7 (Disabled/Hidden for Team Member) | TC-08 | Макет, Прототип, Реалізація |
+| US-05 (AC-05.1) | UIR-05.1 | S-02, S-03 | Status indicator badge | TC-04, TC-05 | Макет, Реалізація |
+| US-05 (AC-05.2) | UIR-05.2 | S-03 | Visible data: Status value | TC-05 | Макет, Реалізація |
+| US-05 (AC-05.3) | UIR-05.3 | S-02-A, S-02-B | Column: Status | TC-04 | Макет, Реалізація |
+| US-06 (AC-06.1) | UIR-06.1 | S-03 | C-03.9 (Disabled if comment empty) | TC-10 | Макет, Прототип, Реалізація |
+| US-06 (AC-06.2) | UIR-06.2 | S-03 | Comments list view | TC-11 | Макет, Прототип, Реалізація |
+| US-06 (AC-06.3) | UIR-06.3 | S-03 | Comment Item: Author text | TC-11 | Макет, Реалізація |
+| US-06 (AC-06.4) | UIR-06.4 | S-03 | Comment Item: Date/Time text | TC-11 | Макет, Реалізація |
+| US-06 (AC-06.5) | UIR-06.5 | S-03 | Annotation: Failed save error banner | TC-12 | Макет, Прототип, Реалізація |
+| US-07 (AC-07.1) | UIR-07.1 | S-02, S-03 | Status = Open on newly created issue | TC-01 | Реалізація |
+| US-07 (AC-07.2) | UIR-07.2 | S-03 | C-03.2 (Allowed values: Open, In Progress, Resolved, Closed) | TC-13 | Макет, Прототип, Реалізація |
+| US-07 (AC-07.3) | UIR-07.3 | S-03 | Updated status display persistence | TC-13 | Прототип, Реалізація |
+| US-07 (AC-07.4) | UIR-07.4 | S-03, REF-01 | C-03.2, C-03.3 (Disabled/Static badge for Non-assignee; Assignee only) | TC-08, TC-13 | Макет, Прототип, Реалізація |
+| US-07 (AC-07.5) | UIR-07.5 | S-03 | C-03.2 (Strict transitions BR-08.1) | TC-14 | Макет, Прототип, Реалізація |
+| US-08 (AC-08.1) | UIR-08.1 | S-02-B | Row filter: High and not Closed | TC-15 | Макет, Прототип, Реалізація |
+| US-08 (AC-08.2) | UIR-08.2 | S-02-B | Row filter: Critical and not Closed | TC-15 | Макет, Прототип, Реалізація |
+| US-08 (AC-08.3) | UIR-08.3 | S-02-B | Row exclusion: Low / Normal hidden | TC-15 | Прототип, Реалізація |
+| US-08 (AC-08.4) | UIR-08.4 | S-02-B | Row exclusion: Closed hidden | TC-15 | Прототип, Реалізація |
+| AD-04 (Decision) | UIR-AD.4 | M-01 | C-01M.1 (Max length = 50 limit) | TC-16 | Макет, Прототип, Реалізація |
 
 ## 6. Тестові сценарії для розробників та тестувальників (Test Cases)
 
@@ -285,11 +288,11 @@ Incoming: T-06 (з екрана S-02-A або S-02-B).Outgoing:T-07 → пове
 - **Що НЕ МОЖНА довести цим тестом:**  Не можна довести повторну автоматичну відправку (retry policy), оскільки вона не закладена у вимоги.
 
 ### TC-13: Дозволений перехід статусу Open → In Progress
-- **Actor / Context:**  Будь-який автентифікований користувач (Team Member або Team Lead) на екрані S-03.
-- **Precondition:**  Заявка має статус Open.
+- **Actor / Context:**  Автентифікований користувач, який є призначеним Assignee даної заявки (згідно з AC-07.4, DEF-01).
+- **Precondition:**  Заявка має статус Open; виконавець попередньо призначений (Assignee != Not Set, DEF-02).
 - **Action:**  Відкрити селектор статусів C-03.2, обрати "In Progress", натиснути Apply Status (C-03.3).
 - **Expected visible result:**  Статус заявки змінюється на "In Progress". Бейдж статусу оновлюється. При повторному відкритті селектора статус Open більше недоступний.
-- **Що НЕ МОЖНА довести цим тестом:**  Не можна довести автоматичну фіксацію користувача як виконавця (Assignee не змінюється автоматично).
+- **Що НЕ МОЖНА довести цим тестом:**  Не можна довести автоматичну фіксацію користувача як виконавця (Assignee призначається окремо Team Lead).
 
 ### TC-14: Блокування неприпустимих переходів статусів (Strict State Machine)
 - **Actor / Context:**  Будь-який користувач на екрані S-03.
