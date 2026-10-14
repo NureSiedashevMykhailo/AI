@@ -4,8 +4,8 @@
 **Версія контракту:** `05_Figma_Brief_v1.0.md`  
 **Версія макета у Figma:** `Wireframes_v2 (Final Verified)`  
 **Посилання на дизайн:** [Figma Design Canvas](https://www.figma.com/design/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=0-1&t=IxK0pyfAql2mcBXA-1)  
-**Посилання на прототип:** [Figma Prototype](https://www.figma.com/proto/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=4-4866&p=f&t=Nce1wynPLgP5BZLX-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4%3A4866)  
-**Рецензент / Оператор аудиту:** Студент-аналітик / Team Lead  
+**Посилання на прототип:** [Figma Prototype](https://www.figma.com/proto/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=4-4595&t=H98kuFxKCuZxtRqR-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4%3A4595)  
+**Рецензент / Оператор аудиту:** Студент
 **Дата верифікації:** 14.10.2026  
 
 ---
@@ -94,3 +94,4 @@
   4. Автоматичні ліміти запитів (Rate limiting) та час відгуку сервера (NFR-01).
 
 **Вердикт:** Робоча версія макета та комплект специфікацій відповідають критеріям прийому практичної роботи.
+

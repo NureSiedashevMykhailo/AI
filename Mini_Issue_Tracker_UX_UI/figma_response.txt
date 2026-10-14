@@ -23,3 +23,4 @@ The design file contains 19 native components, with 73 instances used across the
 - Grayscale throughout, except the approved modal validation red.
 - Reviewer annotations remain outside product frames.
 - Persistence, authentication and server permissions were not tested.
+

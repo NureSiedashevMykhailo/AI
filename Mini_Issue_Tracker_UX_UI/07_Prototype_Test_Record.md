@@ -1,8 +1,8 @@
 # 07. Протокол ручного тестування прототипу (Prototype Test Record)
 **Проєкт:** Mini Issue Tracker (Release MVP)  
 **Середовище:** Figma Presentation Mode (Desktop Wireframe View)  
-**Посилання на прототип:** [Figma Prototype URL](https://www.figma.com/proto/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=4-4866&p=f&t=Nce1wynPLgP5BZLX-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4%3A4866)  
-**Тестувальник:** Студент-розробник / Команда тестування  
+**Посилання на прототип:** [Figma Prototype URL](https://www.figma.com/proto/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=4-4595&t=H98kuFxKCuZxtRqR-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4%3A4595)  
+**Тестувальник:** Студент
 **Дата тестування:** 14.10.2026  
 **Мета:** Верифікація базових інтерактивних переходів, збереження контексту навігації та перевірка рольових обмежень у клікабельному прототипі.
 
@@ -55,3 +55,4 @@
   - Стійкість бази даних до одночасного редагування кількома користувачами.
   - Відправка реальних поштових чи push-повідомлень.
   - Серверне шифрування каналу зв'язку HTTPS (NFR-03) та регулярність резервного копіювання (NFR-04).
+
