@@ -5,7 +5,7 @@
 **Версія макета у Figma:** `Wireframes_v2 (Final Verified)`  
 **Посилання на дизайн:** [Figma Design Canvas](https://www.figma.com/design/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=0-1&t=IxK0pyfAql2mcBXA-1)  
 **Посилання на прототип:** [Figma Prototype](https://www.figma.com/proto/yedfcvc9PcUheD1bg9EJRZ/Mini_Issue_Tracker_UX_UI?node-id=4-4595&t=H98kuFxKCuZxtRqR-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4%3A4595)  
-**Рецензент / Оператор аудиту:** Студент
+**Рецензент / Оператор аудиту:** Студент: ПЗПІ-23-9 Сєдашев Михайло  
 **Дата верифікації:** 14.10.2026  
 
 ---
@@ -36,9 +36,9 @@
 | **US-01 / AC-01.2** | Title є обов'язковим, повідомлення про помилку | `M-01 Validation` | Червоний інлайн-напис під інпутом: *"Title is required"*. | **PASS** | Захист від відправки суто пробілів (trimming). |
 | **US-01 / AC-01.3** | Description є обов'язковим | `M-01 Validation` | Червоний інлайн-напис: *"Description is required"*. | **PASS** | Валідація схеми API (Bad Request 400). |
 | **US-01 / AC-01.4** | Автоматичні поля: ID, Open, Author, Created_at | `M-01 → S-02-A, S-03` | Системні поля відсутні у формі вводу M-01. При створенні ID (#108) та початковий статус (Open) відображаються у новому рядку таблиці списку S-02-A (5 колонок), а Author (поточний користувач) та Created_at (дата й час створення) відображаються у блоці деталей на екрані S-03. | **PASS** | Перевірка генерації послідовного ID та таймстемпу на сервері. |
-| **US-01 / AC-01.5** | Пріоритет за замовчуванням: відсутній (Not Set) | `S-02-A`, `S-03` | Відображається нейтральний сірий бейдж *"Not Set"*. | **PASS** | Перевірка збереження `null` або дефолтного enum. |
+| **US-01 / AC-01.5** | Пріоритет за замовчуванням: відсутній (Not Set) | `S-02-A`, `S-03` | Відображається нейтральний контурний сірий бейдж *"Not Set"* (#D1D5DB). | **PASS** | Перевірка збереження `null` або дефолтного enum. |
 | **US-02 / AC-02.1** | Перегляд списку авторизованим користувачем | `S-02-A` | Таблиця списку рендериться після S-01. | **PASS** | Перевірка завантаження сесії з JWT/Cookie. |
-| **US-02 / AC-02.2** | Обов'язкові колонки: ID, Title, Status, Priority, Assignee | `S-02-A`, `S-02-B` | Рівно 5 колонок у заголовку таблиці; відсутні значення Assignee рендеряться як *"Unassigned"*. | **PASS** | Відповідність типів DTO на фронтенді. |
+| **US-02 / AC-02.2** | Обов'язкові колонки: ID, Title, Status, Priority, Assignee | `S-02-A`, `S-02-B` | Рівно 5 колонок у заголовку таблиці; відсутні значення Assignee рендеряться як *"—" (Unassigned)*. | **PASS** | Відповідність типів DTO на фронтенді. |
 | **US-02 / AC-02.3** | Перехід до деталей issue зі списку | `S-02 → S-03` | Клік по заголовку відкриває відповідний екран `S-03`. | **PASS** | Роутинг за динамічним URL (`/issues/:id`). |
 | **US-02 / AC-02.4** | Атрибути на екрані деталей | `S-03` | Присутні ID, Title, Description, Status, Priority, Assignee, Author, Created at. | **PASS** | Цілісність даних при конкурентному читанні. |
 | **US-02 / AC-02.5** | Відображення порожнього стану списку | `S-02-C` | Плашка: *"No issues found. Create the first issue to get started."* + кнопка `+ Create Issue`. | **PASS** | Обробка порожнього масиву `[]` з бекенду. |
@@ -55,8 +55,6 @@
 | **US-07 / AC-07.4** | Зміна статусу доступна ВИКЛЮЧНО призначеному Assignee | `S-03`, `REF-01` | Селектор статусу активний лише у користувача, який є поточним Assignee. Для Team Lead (non-assignee) селектор заблокований. | **PASS** | Перевірка `current_user.id == issue.assignee_id`. |
 | **US-07 / AC-07.5** | Суворі переходи (BR-08.1): лише 4 дозволені маршрути | `REF-01` | Дозволено: Open $\rightarrow$ In Progress, In Progress $\rightarrow$ Resolved, Resolved $\rightarrow$ Closed, Resolved $\rightarrow$ In Progress. Інші заблоковані. | **PASS** | Валідація Transition State Machine на бекенді. |
 | **BR-08.1 (Closed)**| Closed є термінальним статусом (без вихідних переходів) | `S-03 (Closed)`| Для закритої заявки селектор статусів повністю відключений (`disabled`). | **PASS** | Перевірка валідації статусних переходів на бекенді: блокування вихідних змін статусу (BR-08.1) для Closed issue при збереженні можливості читання та додавання коментарів. |
-| **US-08 / AC-08.1-4**| Фільтр Important Issues: `(High OR Critical) AND != Closed` | `S-02-B` | Відображаються лише #101, #104, #102. Заявка #104 (Critical + Resolved) **присутня**. Заявка #107 (Critical + Closed) **відсутня**. | **PASS** | SQL-запит: `WHERE priority IN ('High','Critical') AND status != 'Closed'`. |
-| **NFR-03 / NFR-04** | HTTPS Only та Database Backups | `N/A` | Окремі продуктові екрани відсутні; вимоги зафіксовані як інфраструктурні. | **NOT VERIFIABLE** | Перевірка SSL-сертифікатів та cron-скриптів бекапу на сервері. |
 | **US-08 / AC-08.1-4**| Фільтр Important Issues: `(High OR Critical) AND != Closed` | `S-02-B` | Відображаються лише #101, #104, #102. Заявка #104 (Critical + Resolved) **присутня**. Заявка #107 (Critical + Closed) **відсутня**. | **PASS** | SQL-запит: `WHERE priority IN ('High','Critical') AND status != 'Closed'`. |
 | **NFR-03 / NFR-04** | HTTPS Only та Database Backups | `N/A` | Окремі продуктові екрани відсутні; вимоги зафіксовані як інфраструктурні. | **NOT VERIFIABLE** | Перевірка SSL-сертифікатів та cron-скриптів бекапу на сервері. |
 

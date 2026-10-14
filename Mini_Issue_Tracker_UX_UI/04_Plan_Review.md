@@ -22,7 +22,7 @@
 | US-03 / Критерій 2Assignee | повинен бути членом команди | **COVERED** | S-03, селектор C-03.4 (опції обмежені пулом користувачів: TL, TM1, TM2). |
 | US-03 / Критерій 3Призначати | може лише Team Lead | **COVERED** | S-03, Permission Matrix, T-10, T-12, TC-08. |
 | US-03 / Критерій 4Поточний | assignee відображається у заявці | **COVERED** | S-03 Visible data (Assignee), TC-05, TC-07. |
-| US-04 / AC-04.1Допустимі значення | встановленого Priority: Low, Normal, High, Critical | **COVERED** | S-03, селектор C-03.6, TC-09, TC-18. |
+| US-04 / AC-04.1Допустимі значення | встановленого Priority: Low, Normal, High, Critical | **COVERED** | S-03, селектор C-03.6, TC-09. |
 | US-04 / AC-04.2Встановлювати та | змінювати priority може лише Team Lead | **COVERED** | S-03, C-03.6, C-03.7, Permission Matrix, T-12, TC-08. |
 | US-05 / AC-05.1Поточний status | відображається для кожного issue | **COVERED** | S-02, S-03, бейдж статусу, TC-04, TC-05. |
 | US-05 / AC-05.2Status відображається | на сторінці issue | **COVERED** | S-03 Visible data (Status), TC-05. |

@@ -149,7 +149,9 @@ $$\text{IsImportant} = (\text{Priority} \in \{\text{High}, \text{Critical}\}) \l
 
 ## 10. Sample Data for Mockups
 
-### Issues List Data Set (Demonstrating Default Sort: Critical → High → Normal → Low → Not Set) [D-ID: AD-09]
+### Issues List Data Set (Demonstrating Priority Sort: Critical → High → Normal → Low → Not Set; Default View is Triage Inbox Sorted by Created_at DESC) [D-ID: D-12 / AD-09]
+
+> **Note on Sorting Models (D-12):** The table below illustrates the explicit **Priority Sort** order (Critical → High → Normal → Low → Not Set). In the system's **Default View** (`S-02-A`), rows are ordered by `Created_at DESC` (Triage Inbox model), ensuring newly registered issues (such as newly created #108 with Not Set priority) immediately surface at the very top of the list for initial triage and verification under test TC-01.
 
 | ID | Title (max 50 chars) | Priority | Status | Assignee | Display in Important Filter? |
 |---|---|---|---|---|---|
