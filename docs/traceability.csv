@@ -11,7 +11,7 @@ FR-04,US-05 / AC-05-01,PATCH /issues/{id}/status (Service Layer),test_status_tra
 FR-04,US-05 / AC-05-02,PATCH /issues/{id}/status (Service Layer),test_closed_cannot_reopen
 FR-04,US-06 / AC-06-02,GET /issues/{id} (Service Layer),test_get_closed_issue_allowed
 FR-05,US-04 / AC-04-01,GET /users & PATCH /issues/{id} (Service Layer),test_assign_and_unassign_predefined_user
-FR-05,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Schemas),test_assign_unknown_user_returns_422
+FR-05,US-04 / AC-04-03,PATCH /issues/{id} (API Layer / Schemas),test_assign_unknown_user_returns_422
 FR-06,US-07 / AC-07-01,POST /issues/{id}/comments & GET /issues/{id}/comments (Service Layer),test_add_and_list_comments_on_closed_issue
 FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),test_add_whitespace_only_comment_returns_422
 FR-07,US-01 / AC-01-01,Repository / SQLite,test_sqlite_persistence_across_restarts
