@@ -1,21 +1,21 @@
 Functional Requirement,User Story / Acceptance criteria,Component / API,Future test
-FR-01,US-01 / AC-01-01,POST /issues (IssueService / Schemas),test_create_issue_defaults_success
-FR-01,US-01 / AC-01-02,POST /issues (Schemas),test_create_issue_short_trimmed_title_returns_422
-FR-02,US-02 / AC-02-01,GET /issues (IssueService / Repository),test_list_issues_combined_and_filter_sorted
-FR-02,US-02 / AC-02-02,GET /issues (IssueService / Repository),test_list_issues_empty_filter_returns_200_empty_list
-FR-02,US-03 / AC-03-01,GET /issues/{id} (IssueService),test_get_issue_by_id_success
-FR-02,US-03 / AC-03-02,GET /issues/{id} (IssueService),test_get_nonexistent_issue_returns_404
-FR-03,US-04 / AC-04-01,PATCH /issues/{id} (IssueService / Schemas),test_patch_issue_partial_update_and_preserve_fields
-FR-03,US-06 / AC-06-01,PATCH /issues/{id} (IssueService),test_patch_closed_issue_returns_409
-FR-04,US-05 / AC-05-01,PATCH /issues/{id}/status (IssueService),test_status_transition_and_idempotency
-FR-04,US-05 / AC-05-02,PATCH /issues/{id}/status (IssueService),test_closed_cannot_reopen
-FR-04,US-06 / AC-06-02,GET /issues/{id} (IssueService),test_get_closed_issue_allowed
-FR-05,US-04 / AC-04-01,GET /users & PATCH /issues/{id} (IssueService),test_assign_and_unassign_predefined_user
-FR-05,US-04 / AC-04-02,PATCH /issues/{id} (Schemas),test_assign_unknown_user_returns_422
-FR-06,US-07 / AC-07-01,POST /issues/{id}/comments & GET /issues/{id}/comments (IssueService),test_add_and_list_comments_on_closed_issue
-FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (Schemas),test_add_whitespace_only_comment_returns_422
-FR-07,US-01 / AC-01-01 & US-04 / AC-04-02,Repository / SQLite & PATCH /issues/{id},test_sqlite_persistence_and_atomic_rollback_on_error
+FR-01,US-01 / AC-01-01,POST /issues (Service Layer / API Layer),test_create_issue_defaults_success
+FR-01,US-01 / AC-01-02,POST /issues (API Layer / Schemas),test_create_issue_short_trimmed_title_returns_422
+FR-02,US-02 / AC-02-01,GET /issues (Service Layer / Repository),test_list_issues_combined_and_filter_sorted
+FR-02,US-02 / AC-02-02,GET /issues (Service Layer / Repository),test_list_issues_empty_filter_returns_200_empty_list
+FR-02,US-03 / AC-03-01,GET /issues/{id} (Service Layer),test_get_issue_by_id_success
+FR-02,US-03 / AC-03-02,GET /issues/{id} (Service Layer),test_get_nonexistent_issue_returns_404
+FR-03,US-04 / AC-04-01,PATCH /issues/{id} (Service Layer / API Layer),test_patch_issue_partial_update_and_preserve_fields
+FR-03,US-06 / AC-06-01,PATCH /issues/{id} (Service Layer),test_patch_closed_issue_returns_409
+FR-04,US-05 / AC-05-01,PATCH /issues/{id}/status (Service Layer),test_status_transition_and_idempotency
+FR-04,US-05 / AC-05-02,PATCH /issues/{id}/status (Service Layer),test_closed_cannot_reopen
+FR-04,US-06 / AC-06-02,GET /issues/{id} (Service Layer),test_get_closed_issue_allowed
+FR-05,US-04 / AC-04-01,GET /users & PATCH /issues/{id} (Service Layer),test_assign_and_unassign_predefined_user
+FR-05,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Schemas),test_assign_unknown_user_returns_422
+FR-06,US-07 / AC-07-01,POST /issues/{id}/comments & GET /issues/{id}/comments (Service Layer),test_add_and_list_comments_on_closed_issue
+FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),test_add_whitespace_only_comment_returns_422
+FR-07,US-01 / AC-01-01,Repository / SQLite,test_sqlite_persistence_across_restarts
+FR-07,US-04 / AC-04-02,PATCH /issues/{id} (Repository / Service),test_patch_atomic_rollback_preserves_original_data
 FR-08,Future / LR4 (Deferred),ClassifierService (Stub),test_classifier_suggestion_does_not_mutate_issue_lr4
 
 # Coverage = (7 / 7) * 100% = 100%
-

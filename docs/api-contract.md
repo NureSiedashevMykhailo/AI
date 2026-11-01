@@ -319,7 +319,7 @@ Content-Type: application/json
   * `id` (`integer`, обов'язковий, $> 0$) — Ідентифікатор заявки (дозволено для заявок у будь-якому статусі, включаючи `CLOSED`).
 * **Query Parameters**: Відсутні.
 * **Request Body Schema (`application/json`)**:
-  | Поле | Тип | Обов'язковість | Правила валідації ([docs/requirements.md](requirements.md#сутноість-comment-коментар)) |
+  | Поле | Тип | Обов'язковість | Правила валідації ([docs/requirements.md](requirements.md#сутність-comment-коментар)) |
   | :--- | :--- | :--- | :--- |
   | `author_id` | `integer` | **Так** | Не `null`; строго `1` (`Agent A`) або `2` (`Agent B`). |
   | `text` | `string` | **Так** | Не `null`; після `trim` довжина від `1` до `1000` символів включно. |
