@@ -15,8 +15,8 @@ FR-05,US-04 / AC-04-03,PATCH /issues/{id} (API Layer / Schemas),test_assign_unkn
 FR-06,US-07 / AC-07-01,POST /issues/{id}/comments (Service Layer),test_add_comment_on_closed_issue_returns_201
 FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),test_add_whitespace_only_comment_returns_422
 FR-06,US-07 / AC-07-03,GET /issues/{id}/comments (Service Layer / Repository),test_list_issue_comments_chronological_order
-FR-07,US-01 / AC-01-01,Repository / SQLite,test_sqlite_persistence_across_restarts
+FR-07,US-01 / AC-01-03,Repository / SQLite (File DB),test_sqlite_persistence_across_restarts
 FR-07,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Repository),test_patch_mixed_valid_and_invalid_fields_atomic_rejection
-FR-08,Future / LR4 (Deferred),ClassifierService (Stub),test_classifier_suggestion_does_not_mutate_issue_lr4
+FR-08,US-08 / AC-08-01 (Future / LR4),ClassifierService (Stub),test_classifier_suggestion_does_not_mutate_issue_lr4
 
 # Coverage = (7 / 7) * 100% = 100%
