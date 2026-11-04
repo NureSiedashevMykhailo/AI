@@ -53,6 +53,7 @@
 * Виправлено кардинальність зв'язку `USER |o..o{ ISSUE : "assigned to"` в ER-діаграмі [docs/architecture.md (Розділ 2.1)](architecture.md#21-er-діаграма-mermaid) відповідно до необов'язковості поля `assignee_id` (`NULLABLE`).
 * Приведено архітектурну діаграму та таблицю в [docs/architecture.md (Розділ 1)](architecture.md#1-схема-розподілу-відповідальності-c4-component-level) до 3 основних компонентів (`API Layer`, `Service Layer`, `Database / Repository Layer`) із зовнішнім `ClassifierService (Stub)`.
 * Забезпечено взаємно-однозначну простежуваність критеріїв для `FR-05` (`AC-04-04`, `AC-04-01`, `AC-04-03`), `FR-06` (`AC-07-01..03`), `FR-07` (`AC-01-03` — збереження після перезапуску на файловій БД, `AC-04-02` — спостережувана атомарність без внутрішніх деталей реалізації) та `FR-08` (`US-08 / AC-08-01`) у [docs/requirements.md](requirements.md#3-user-stories-та-критерії-приймання-acceptance-criteria) та [docs/traceability.csv](traceability.csv).
+* Сесія зовнішньої верифікації та критичного рев'ю специфікації: [ChatGPT Review Session](https://chatgpt.com/share/6aeb09ee-cbf8-83eb-be5f-f7d017623845).
 
 ---
 
@@ -81,3 +82,4 @@ $$\text{Coverage} = \frac{7}{7} \times 100\% = 100\%$$
 * [docs/api-contract.md](api-contract.md) — Контракт 9 маршрутів REST API
 * [docs/traceability.csv](traceability.csv) — Матриця простежуваності вимог (Coverage = 100%)
 * [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом
+* [Зовнішній аудит і верифікація специфікації (ChatGPT)](https://chatgpt.com/share/6aeb09ee-cbf8-83eb-be5f-f7d017623845) — сесія незалежної перевірки узгодженості вимог
