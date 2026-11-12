@@ -123,3 +123,4 @@
 * [`docs/ai-log.md`](ai-log.md) — журнал взаємодії з AI-асистентом (Записи 6–17 для ЛР-02)
 * [`.agents/skills/tracker-slice/SKILL.md`](../.agents/skills/tracker-slice/SKILL.md) та [`.agents/skills/tracker-slice/references/slices.md`](../.agents/skills/tracker-slice/references/slices.md) — специфікація Skill `tracker-slice`
 * [`tests/test_issues.py`](../tests/test_issues.py), [`tests/test_comments.py`](../tests/test_comments.py) та [`tests/test_users.py`](../tests/test_users.py) — набір із 112 автотестів для сценаріїв `T01–T14` та `GET /users`
+* [Зовнішня перевірка ЛР-02 (ChatGPT)](https://chatgpt.com/c/6af622e1-90a0-83ed-9d15-edc2df280d1b) — сесія перевірки реалізації та звітності ЛР-02

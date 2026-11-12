@@ -116,42 +116,44 @@ https://chatgpt.com/share/6aeb09ee-cbf8-83eb-be5f-f7d017623845
 Тема: Реалізація сервісу з AI-асистентом та проєктування Agent Skill
 Мітки етапів: lab02-skill-v0 (1e31f86), lab02-ai-draft (d775c03)
 Каталоги артефактів: app/, tests/, .agents/skills/tracker-slice/, docs/
+Зовнішня перевірка (ChatGPT Review):
+https://chatgpt.com/c/6af622e1-90a0-83ed-9d15-edc2df280d1b
 ========================================================================
 
 1. app/ (database.py, main.py, schemas.py, services.py, routes.py, __init__.py)
    - Реалізація REST API сервісу Mini Issue Tracker на FastAPI, Pydantic v2 та SQLite
      (залежності зафіксовані в requirements-lock.txt, Python 3.11+ / перевірено на 3.13.1).
-   - Покриття обов'язкових вимог FR-01 – FR-07 вертикальними зрізами A–D:
-     * Каркас і здоров'я: GET /health (200 OK), ініціалізація SQLite, PRAGMA foreign_keys = ON,
-       ідемпотентний seed користувачів (1: Agent A, 2: Agent B).
-     * Зріз A: POST /issues, GET /issues, GET /issues/{id}.
+   - Покриття всіх 9 обов'язкових маршрутів контракту ЛР1 (FR-01 – FR-07):
+     * Каркас і здоров'я: GET /health (200 OK), ініціалізація SQLite у lifespan,
+       PRAGMA foreign_keys = ON, ідемпотентний seed користувачів (1: Agent A, 2: Agent B).
+     * Зріз A: GET /users, POST /issues, GET /issues, GET /issues/{id}.
      * Зріз B: PATCH /issues/{id} (атомарність, extra="forbid", {} як no-op / 409 для CLOSED),
        PATCH /issues/{id}/status (матриця переходів 3x3, заборона повернення з CLOSED).
      * Зріз C: POST /issues/{id}/comments, GET /issues/{id}/comments (дозволено для CLOSED).
      * Зріз D: фільтрація GET /issues?status=...&priority=... за логікою AND
        (matches_status, matches_priority).
-   - Межі обсягу: FR-08 (ClassifierService) зарезервовано на ЛР4; GET /users не входив
-     до зрізів A–D і не експортується в app/routes.py.
+   - Межі обсягу: FR-08 (ClassifierService) зарезервовано на ЛР4.
 
-2. tests/ (conftest.py, test_issues.py, test_comments.py)
-   - 109 автотестів pytest на ізольованій тимчасовій SQLite БД (tmp_path / "test.db")
-     із перевіркою сценаріїв T01–T14, порядку помилок 422 -> 404 -> 409, заборони bool як int
-     та персистентності даних між перезапусками create_app.
+2. tests/ (conftest.py, test_issues.py, test_comments.py, test_users.py)
+   - 112 автотестів pytest на ізольованій тимчасовій SQLite БД (tmp_path / "test.db")
+     із перевіркою сценаріїв T01–T14, GET /users, ізоляції lifespan, порядку помилок
+     422 -> 404 -> 409, заборони bool як int та персистентності між перезапусками create_app.
    - Перевірки після фінальних змін:
-     * .\.venv\Scripts\python.exe -m pytest -q -> 109 passed
+     * .\.venv\Scripts\python.exe -m pytest -q -> 112 passed
      * .\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I -> All checks passed!
 
 3. .agents/skills/tracker-slice/ (SKILL.md, references/slices.md)
    - Agent Skill для покрокової реалізації вертикальних зрізів A–D Mini Issue Tracker.
    - Тестування тригера на Кроці 0: 4/4 (100% — 2 позитивні й 2 негативні запити).
-   - Еволюція v0 -> v1 (62fd03c): перенесення references/slices.md всередину теки скіла та
-     додавання database.py до дозволених файлів зрізів B і C.
+   - Еволюція v0 -> v1 (62fd03c): перенесення references/slices.md всередину теки скіла,
+     додавання database.py до дозволених файлів зрізів B і C, заміна заглушок на реальні
+     ID з docs/requirements.md та додавання GET /users до Зрізу A.
 
 4. docs/lab-02.md
    - Фінальний звіт з ЛР-02: покриття FR-01–FR-07, результати Кроку 0, використання
      tracker-slice у зрізах A–D, обґрунтування v0 -> v1, порівняння lab02-ai-draft і
-     фінальної версії, аналіз мікроексперименту, результати pytest і ruff та стислі
-     відповіді на 8 контрольних питань.
+     фінальної версії, аналіз мікроексперименту, результати pytest і ruff та точні
+     відповіді на 8 контрольних питань методички ЛР2.
 
 5. docs/experiment-lr2.csv
    - Таблиця порівняльного мікроексперименту (no-AI vs AI + Skill):
@@ -159,11 +161,13 @@ https://chatgpt.com/share/6aeb09ee-cbf8-83eb-be5f-f7d017623845
 
 6. docs/traceability.csv
    - Оновлена матриця простежуваності: заглушки майбутніх тестів замінено на реальні імена
-     тестових функцій із tests/test_issues.py та tests/test_comments.py (T01–T14).
+     тестових функцій із tests/test_issues.py, tests/test_comments.py та tests/test_users.py
+     (T01–T14, GET /users, lifespan).
 
 7. docs/ai-log.md
-   - Продовження журналу взаємодії з AI-асистентом для ЛР-02 (Записи 6–16: тестування Skill,
-     Крок 1, Зрізи A–D, формування фінальної звітності) зі збереженням усіх записів ЛР-01.
+   - Продовження журналу взаємодії з AI-асистентом для ЛР-02 (Записи 6–17: тестування Skill,
+     Крок 1, Зрізи A–D, формування звітності, фінальні виправлення та зовнішня перевірка
+     у ChatGPT) зі збереженням усіх записів ЛР-01.
 
 8. README.md
    - Інструкція розгортання та локального запуску (.venv, requirements-lock.txt,
