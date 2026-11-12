@@ -14,7 +14,7 @@
 
 
 ## B. Зміни й стани
-- Код (app/): schemas.py, services.py, routes.py
+- Код (app/): schemas.py, services.py, routes.py, database.py
 - Тести (tests/): test_issues.py
 - Читати: docs/api-contract.md — правила PATCH; переходи статусів
 - Критерії: docs/requirements.md — <US-xx, AC-xx-yy>
@@ -22,7 +22,7 @@
 
 
 ## C. Коментарі
-- Код (app/): schemas.py, services.py, routes.py
+- Код (app/): schemas.py, services.py, routes.py, database.py
 - Тести (tests/): test_comments.py
 - Читати: docs/api-contract.md — POST і GET /issues/{id}/comments
 - Критерії: docs/requirements.md — <US-xx, AC-xx-yy>
