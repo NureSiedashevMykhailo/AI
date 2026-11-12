@@ -3,13 +3,40 @@
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+)
 
 ALLOWED_USER_IDS = frozenset({1, 2})
 
 TrimmedTitle = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=3, max_length=120),
+]
+
+
+def _reject_bool_assignee(value: object) -> object:
+    if isinstance(value, bool):
+        raise ValueError("assignee_id must be 1, 2, or null")
+    return value
+
+
+def _validate_allowed_assignee(value: int | None) -> int | None:
+    if value is not None and value not in ALLOWED_USER_IDS:
+        raise ValueError("assignee_id must be one of the predefined users: 1 or 2")
+    return value
+
+
+AssigneeId = Annotated[
+    int | None,
+    BeforeValidator(_reject_bool_assignee),
+    AfterValidator(_validate_allowed_assignee),
 ]
 
 
@@ -31,21 +58,29 @@ class IssueCreate(BaseModel):
     title: TrimmedTitle
     description: str = Field(default="", max_length=2000)
     priority: IssuePriority = IssuePriority.medium
-    assignee_id: int | None = None
+    assignee_id: AssigneeId = None
 
-    @field_validator("assignee_id", mode="before")
+
+class IssueUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: TrimmedTitle | None = None
+    description: str | None = Field(default=None, max_length=2000)
+    priority: IssuePriority | None = None
+    assignee_id: AssigneeId = None
+
+    @field_validator("title", "description", "priority", mode="before")
     @classmethod
-    def reject_non_integer_assignee(cls, value: object) -> object:
-        if isinstance(value, bool):
-            raise ValueError("assignee_id must be 1, 2, or null")
+    def reject_null_for_non_nullable_fields(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Field cannot be null")
         return value
 
-    @field_validator("assignee_id", mode="after")
-    @classmethod
-    def validate_assignee_id(cls, value: int | None) -> int | None:
-        if value is not None and value not in ALLOWED_USER_IDS:
-            raise ValueError("assignee_id must be one of the predefined users: 1 or 2")
-        return value
+
+class IssueStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: IssueStatus
 
 
 class IssueRead(BaseModel):

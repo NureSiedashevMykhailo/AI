@@ -246,3 +246,31 @@
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
   * **Ручна перевірка**: підтверджено дотримання процедури `tracker-slice` (план затверджено до внесення змін), розподілу шарів, відсутність виходу за межі скоупу (зрізи B, C, D та `GET /users` не чіпалися).
 * **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/conftest.py`, `tests/test_issues.py` | Commit: `54b5ed2` (`feat(slice-a): implement issue creation, listing and details`).
+
+---
+
+## Запис 12. Реалізація Зрізу B: оновлення, стани $3 \times 3$ та захист `CLOSED` (ЛР-02, Skill `tracker-slice`)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode)
+* **Активність Skill**: `tracker-slice` — **активовано** (повний цикл: зріз B → читання `docs/` → перевірки → план → виявлення суперечності з `docs/` → підтвердження → diff → `pytest` і `ruff`).
+* **Етап**: Реалізація Зрізу B (`PATCH /issues/{id}`, `PATCH /issues/{id}/status`, призначення/зняття виконавця).
+* **Мета**: Реалізувати часткове оновлення заявки, переходи статусів за матрицею $3 \times 3$ та блокування редагування `CLOSED`-заявок із покриттям `T07, T08, T09, T10, T14`.
+* **Переданий контекст**: `.agents/skills/tracker-slice/references/slices.md`, `docs/api-contract.md` (Розділ 1, 2.6, 2.7), `docs/requirements.md` (`US-04–US-06`, Розділи 1.3, 4.1, 5, 6, 7.1–7.2).
+* **Ключовий запит (Prompt)**:
+  > «Використай Skill tracker-slice для реалізації зрізу B (оновлення заявки PATCH /issues/{id}, зміна статусу PATCH /issues/{id}/status за таблицею переходів та призначення/зняття виконавця). Суворо дотримуйся правил часткового PATCH з docs/ (заборона порожнього PATCH, заборона title/priority: null, заборона передавати status через загальний PATCH, атомарність при помилці валідації одного поля, коди 200 / 404 / 409 / 422). Додай тести для сценаріїв T07, T08, T09, T10, T14.»
+* **Виявлена розбіжність до старту та рішення команди**:
+  * **Суперечність щодо `{}`**: у промпті зазначено «заборона порожнього PATCH», тоді як `docs/requirements.md` (Розділ 1.3, 6 п. 3) і `docs/api-contract.md` (Розділ 2.6) визначають `{}` як валідний `no-op` (`200 OK`) для відкритої заявки та `409 Conflict` для `CLOSED`. Агент зупинився перед редагуванням і запитав рішення; команда підтвердила пріоритет специфікації `docs/` (`200 OK` / `409`).
+  * **Список файлів у `slices.md`**: для Зрізу B у `slices.md` не було вказано `database.py`, проте `UPDATE`-функції ще були відсутні — команда схвалила їх додавання в `app/database.py`.
+* **Що реалізовано**:
+  * `app/schemas.py`: спільний валідатор `AssigneeId` (`[1, 2] | None` із відхиленням `bool`), `IssueUpdate` (`extra="forbid"`, опціональні поля, `reject_null_for_non_nullable_fields` для `title`/`description`/`priority`) та `IssueStatusUpdate`.
+  * `app/database.py`: `_fetch_issue_row`, `UPDATABLE_ISSUE_COLUMNS`, параметризовані `update_issue` (allowlist колонок, транзакція `with conn:`) та `update_issue_status`.
+  * `app/services.py`: `IssueConflictError`, `ALLOWED_STATUS_TRANSITIONS` ($3 \times 3$), `update_issue` (`404 → 409`, `exclude_unset=True`, `{}` як `no-op` без запису в БД для відкритих заявок) та `update_issue_status`.
+  * `app/routes.py`: `PATCH /issues/{id}` і `PATCH /issues/{id}/status` (`id > 0`, мапінг `404` / `409`).
+  * `tests/test_issues.py`: +40 тест-кейсів для `T07, T08, T09, T10, T14` (`{}`, зайві поля, заборона `status` у загальному `PATCH`, атомарність, порядок `422 → 404 → 409`).
+* **Спосіб перевірки та ручний аналіз**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `66 passed` (1 попередження `StarletteDeprecationWarning` усередині `fastapi/testclient.py`).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+  * **Ручна перевірка**: підтверджено дотримання `tracker-slice` (захист специфікації `docs/` від суперечливої вимоги у промпті), відсутність зайвого рефакторингу та збереження меж скоупу (зрізи C, D та `GET /users` не чіпалися).
+* **Пов'язаний артефакт / Статус**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_issues.py` — реалізовано та перевірено (рішення щодо коміту за оператором).

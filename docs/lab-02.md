@@ -28,6 +28,7 @@
 | **Запис 9** | «Як створити віртуальне середовище у Windows?» | Не активувати | Не активовано; надано команди `venv` для PowerShell і CMD | **Пройдено** |
 | **Запис 10** | Реалізація мінімального каркасу застосунку (Крок 1) | Не активувати | Не активовано; реалізовано базовий каркас без бізнес-маршрутів зрізів A–D | **Пройдено** |
 | **Запис 11** | Реалізація Зрізу A (`POST /issues`, `GET /issues`, `GET /issues/{id}`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → мінімальний diff → `pytest` `26 passed`, `ruff` `All checks passed!`) | **Пройдено** |
+| **Запис 12** | Реалізація Зрізу B (`PATCH /issues/{id}`, `PATCH /issues/{id}/status`) | Активація `tracker-slice` | Активовано; виявлено й узгоджено суперечність `{}` із `docs/`, виконано план → `pytest` `66 passed`, `ruff` `All checks passed!` | **Пройдено** |
 
 ### 2.2. Крок 1 — Мінімальний каркас застосунку
 * **База даних (`app/database.py`)**: реалізовано `get_connection(db_path)` із `sqlite3.Row` та обов'язковим `PRAGMA foreign_keys = ON;` на кожному з'єднанні; `init_db(db_path)` створює таблиці `users`, `issues`, `comments` згідно з ER-моделлю ЛР1 (`CHECK`-обмеження для `status` і `priority`, зовнішні ключі) та ідемпотентно додає користувачів `(1, "Agent A")` і `(2, "Agent B")` через `INSERT OR IGNORE`.
@@ -46,14 +47,22 @@
   * `.\.venv\Scripts\python.exe -m pytest -q` — `26 passed` (`app.db` не змінювався).
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
 
+### 2.4. Реалізація Зрізу B — Оновлення, матриця станів $3 \times 3$ та захист `CLOSED`
+* **Схеми (`app/schemas.py`)**: винесено спільний тип `AssigneeId` (`[1, 2] | None`, відхилення `bool`), додано `IssueUpdate` (`extra="forbid"`, валідатор `reject_null_for_non_nullable_fields` для `title`/`description`/`priority`) та `IssueStatusUpdate`.
+* **БД і сервіс (`app/database.py`, `app/services.py`)**: додано `UPDATABLE_ISSUE_COLUMNS`, параметризовані `update_issue` і `update_issue_status` у транзакції `with conn:`; у сервісі — `IssueConflictError` (`409`), матрицю переходів $3 \times 3$ (`ALLOWED_STATUS_TRANSITIONS`), `update_issue` (`exclude_unset=True`, `{}` як `no-op` для відкритих заявок) та `update_issue_status`.
+* **Маршрути (`app/routes.py`)**: `PATCH /issues/{id}` та `PATCH /issues/{id}/status` (`id > 0`, мапінг `404`/`409`).
+* **Тести (`tests/test_issues.py`)**: +40 тест-кейсів для `T07, T08, T09, T10, T14` (`{}`, заборона `status` у загальному `PATCH`, атомарність, порядок `422 → 404 → 409`).
+* **Перевірки Зрізу B**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `66 passed`.
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+
 ---
 
-## 3. Рев'ю планів та diff (Крок 1 і Зріз A)
+## 3. Рев'ю планів та diff (Крок 1, Зрізи A та B)
 
-1. **Дотримання контракту та ізоляції**: у Кроці 1 та Зрізі A збережено межі скоупу (зрізи B, C, D і `GET /users` не зачіпалися), параметризовані SQL-запити без бізнес-логіки в маршрутах, `PRAGMA foreign_keys = ON`, `extra="forbid"` та відхилення `bool` для `assignee_id`, а також ізоляцію тестів у `tmp_path`.
-2. **Узгодження структури модулів**:
-   * Під час первинного планування виявлено розбіжність між пласкими шляхами зі `SKILL.md` (Запис 6) та вкладеною структурою `app/db/...`, `app/api/...` (Запис 7).
-   * У Кроці 1 зафіксовано єдину пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`), яку без конфліктів використано при реалізації Зрізу A.
+1. **Захист специфікації `docs/` як Single Source of Truth**: під час планування Зрізу B агент виявив суперечність між формулюванням у промпті («заборона порожнього PATCH») і контрактом у `docs/requirements.md` та `docs/api-contract.md` (`{}` → `200 OK` як `no-op` для відкритої заявки, `409 Conflict` для `CLOSED`). Роботу було зупинено до підтвердження оператора, що запобігло поломці контракту.
+2. **Дотримання меж і безпеки**: у Кроці 1, Зрізі A та Зрізі B збережено скоуп (зрізи C, D і `GET /users` не чіпалися), параметризовані запити з allowlist колонок, `PRAGMA foreign_keys = ON`, `extra="forbid"`, відхилення `bool` для `assignee_id` та ізоляцію тестів у `tmp_path`.
+3. **Узгодження структури модулів**: зафіксовану в Кроці 1 пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`) без конфліктів використано у Зрізах A та B.
 
 ---
 
@@ -62,15 +71,15 @@
 За результатами тестування `v0` та виконання Кроку 1:
 
 1. **Виконано — додано `references/slices.md`**: довідник перенесено всередину теки скіла ([.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md)), де зафіксовано зрізи `A–D` і єдину пласку структуру файлів `app/`.
-2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md) та додати явне правило щодо поведінки при порожньому каркасі `app/`.
+2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md), додати `database.py` до переліку дозволених файлів Зрізу B (оскільки `UPDATE`-функції не існували на старті зрізу) та уточнити поведінку при порожньому каркасі `app/`.
 
 ---
 
 ## 5. Пов'язані артефакти
 
-* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–11 для ЛР-02)
+* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–12 для ЛР-02)
 * [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md) — Специфікація Skill `tracker-slice`
 * [.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md) — Довідник зрізів `A–D`
-* [tests/test_issues.py](../tests/test_issues.py) — Автотести Зрізу A (`T01, T02, T03, T13`)
+* [tests/test_issues.py](../tests/test_issues.py) — Автотести Зрізів A і B (`T01–T03, T07–T10, T13, T14`)
 * [docs/api-contract.md](api-contract.md) — Контракт REST API (Single Source of Truth)
 * [docs/requirements.md](requirements.md) — Вимоги та критерії приймання

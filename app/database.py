@@ -4,6 +4,8 @@ from typing import Any
 
 DEFAULT_DB_PATH = "data/app.db"
 
+UPDATABLE_ISSUE_COLUMNS = frozenset({"title", "description", "priority", "assignee_id"})
+
 SEED_USERS: tuple[tuple[int, str], ...] = (
     (1, "Agent A"),
     (2, "Agent B"),
@@ -127,18 +129,75 @@ def list_issues(db_path: str | Path) -> list[dict[str, Any]]:
         conn.close()
 
 
+def _fetch_issue_row(
+    conn: sqlite3.Connection,
+    issue_id: int,
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT id, title, description, status, priority, assignee_id, created_at
+        FROM issues
+        WHERE id = ?
+        """,
+        (issue_id,),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
 def get_issue_by_id(db_path: str | Path, issue_id: int) -> dict[str, Any] | None:
     """Fetch a single issue by id, or return None if not found."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute(
-            """
-            SELECT id, title, description, status, priority, assignee_id, created_at
-            FROM issues
-            WHERE id = ?
-            """,
-            (issue_id,),
-        ).fetchone()
-        return dict(row) if row is not None else None
+        return _fetch_issue_row(conn, issue_id)
+    finally:
+        conn.close()
+
+
+def update_issue(
+    db_path: str | Path,
+    issue_id: int,
+    updates: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Atomically update allowed fields of an existing issue and return it."""
+    if not updates:
+        return get_issue_by_id(db_path, issue_id)
+
+    invalid_columns = set(updates) - UPDATABLE_ISSUE_COLUMNS
+    if invalid_columns:
+        raise ValueError(f"Unsupported issue columns: {sorted(invalid_columns)}")
+
+    assignments = ", ".join(f"{column} = ?" for column in updates)
+    params = [*updates.values(), issue_id]
+
+    conn = get_connection(db_path)
+    try:
+        with conn:
+            cursor = conn.execute(
+                f"UPDATE issues SET {assignments} WHERE id = ?",
+                params,
+            )
+            if cursor.rowcount == 0:
+                return None
+        return _fetch_issue_row(conn, issue_id)
+    finally:
+        conn.close()
+
+
+def update_issue_status(
+    db_path: str | Path,
+    issue_id: int,
+    new_status: str,
+) -> dict[str, Any] | None:
+    """Atomically update the status of an existing issue and return it."""
+    conn = get_connection(db_path)
+    try:
+        with conn:
+            cursor = conn.execute(
+                "UPDATE issues SET status = ? WHERE id = ?",
+                (new_status, issue_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+        return _fetch_issue_row(conn, issue_id)
     finally:
         conn.close()
