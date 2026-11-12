@@ -4,93 +4,124 @@
 **Виконавець**: Студент гр. ПЗПІ-23-9 Сєдашев Михайло (`Siedashev Mykhailo`)  
 **Репозиторій**: [NureSiedashevMykhailo/AI](https://github.com/NureSiedashevMykhailo/AI)  
 **Базова специфікація**: Tag: `lab01-spec`  
+**Проміжні мітки ЛР2**: `lab02-skill-v0` (`1e31f86`), `lab02-ai-draft` (`d775c03`)
 
 ---
 
-## 1. Крок 0 — Підготовка середовища та Skill `tracker-slice` (v0)
+## 1. Мета роботи та реалізована функціональність (`FR-01–FR-07`)
 
-* **База специфікації**: використано затверджені артефакти ЛР1 ([docs/requirements.md](requirements.md), [docs/architecture.md](architecture.md), [docs/api-contract.md](api-contract.md), [docs/traceability.csv](traceability.csv)).
-* **Робоче середовище (Windows)**: підготовлено інструкцію розгортання ізольованого Python-середовища `.venv` у PowerShell (`python -m venv .venv`, `.\.venv\Scripts\Activate.ps1`).
-* **Створено Skill `tracker-slice` (v0)**: [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md). Skill обмежує агента реалізацією одного вертикального зрізу за `docs/api-contract.md`, вимагає планування перед редагуванням коду та забороняє запуск на задачах налаштування середовища чи загальних теоретичних питаннях.
+**Мета роботи**: реалізувати працездатний REST API-сервіс Mini Issue Tracker у стеку Python `3.11+` (`Python 3.13.1`), FastAPI, Pydantic v2 та SQLite за специфікацією ЛР1, спроєктувати й перевірити власний Agent Skill `tracker-slice`, провести порівняння AI-чернетки та фінальної версії, а також оцінити ефективність AI + Skill у мікроексперименті.
+
+Після базового каркасу (`c1a7dc4` — `app/database.py`, `app/main.py` з `GET /health`, `app/schemas.py`, `app/services.py`, `app/routes.py`) вертикальними зрізами `A–D` реалізовано всі обов'язкові вимоги `FR-01–FR-07`:
+
+| Вимога | Реалізовані маршрути та компоненти | Ключові правила й перевірки | Покриття в тестах (`T01–T14`) |
+| :--- | :--- | :--- | :--- |
+| **FR-01** | `POST /issues` (`create_issue`, `IssueCreate`, `insert_issue`) | `title` (`trim`, `3..120`), `description` (`""`, `0..2000`), `priority="medium"`, `status="OPEN"`, UTC `created_at`, `extra="forbid"` (`201`/`422`) | `T01`, `T02` (`test_issues.py`) |
+| **FR-02** | `GET /issues`, `GET /issues/{id}` (`get_issues`, `get_issue`, `matches_status`, `matches_priority`) | Фільтрація `status` і `priority` за `AND`, порожній список `[]` (`200`), сортування `created_at ASC, id ASC`, `id > 0` (`422`), відсутній ресурс (`404`) | `T03`, `T04`, `T05`, `T06` (`test_issues.py`) |
+| **FR-03** | `PATCH /issues/{id}` (`update_issue`, `IssueUpdate`) | Часткове оновлення (`exclude_unset=True`), `{}` як `no-op` (`200`), заборона `status` і невідомих полів (`422`), заборона змін для `CLOSED` (`409`) | `T07`, `T09`, `T10`, `T14` (`test_issues.py`) |
+| **FR-04** | `PATCH /issues/{id}/status` (`update_issue_status`, `ALLOWED_STATUS_TRANSITIONS`) | Матриця переходів $3 \times 3$: дозволені переходи та ідемпотентність (`200`), зворотні переходи (`409`), `GET /issues/{id}` для `CLOSED` (`200`) | `T08`, `T09`, `T10` (`test_issues.py`) |
+| **FR-05** | `AssigneeId` (`IssueCreate`, `IssueUpdate`), `SEED_USERS` | Фіксований довідник `[1, 2]` (`Agent A`, `Agent B`), призначення `1`/`2` і зняття `null`, відхилення невідомих ID та `bool` (`422`) | `T07`, `T10` (`test_issues.py`) |
+| **FR-06** | `POST/GET /issues/{id}/comments` (`add_comment`, `get_comments`, `CommentCreate`) | `author_id` з `[1, 2]` (без `bool`/`null`), `text` (`trim`, `1..1000`), коментування `CLOSED`, порядок `created_at ASC, id ASC`, `422 → 404` | `T11`, `T12` (`test_comments.py`) |
+| **FR-07** | `app/database.py` (SQLite, `PRAGMA foreign_keys = ON`, `with conn:`) + Pydantic | Персистентність між перезапусками `create_app`, відхилення змішаних невалідних `PATCH` до звернення до БД (`422`), атомарний `UPDATE` | `T12`, `T13`, `T14` (`test_issues.py`, `test_comments.py`) |
+| **FR-08** | **Поза обсягом ЛР2** | Модуль AI-класифікації (`ClassifierService`) зарезервовано для ЛР4 | `test_classifier_suggestion_...` (майбутній тест ЛР4) |
+
+> **Примітка про межі реалізації**: залежності зафіксовані в [`requirements-lock.txt`](../requirements-lock.txt) без розширень; маршрут `GET /users` з `docs/api-contract.md` не входив до зрізів `A–D` і наразі не експортується в [`app/routes.py`](../app/routes.py).
 
 ---
 
-## 2. Хід реалізації та тестування активації Skill
+## 2. Skill `tracker-slice`: Крок 0, зрізи `A–D` та еволюція `v0 → v1`
 
-### 2.1. Тестування точності активації Skill `tracker-slice`
-Проведено серію контрольних запитів для перевірки тригера `tracker-slice` (позитивні та негативні кейси). Детальний протокол зафіксовано в [docs/ai-log.md](ai-log.md) (Записи 6–10).
+### 2.1. Результати Кроку 0 — тестування точності тригера (4 запити)
+Для [`tracker-slice`](../.agents/skills/tracker-slice/SKILL.md) було проведено 4 контрольні запити (2 позитивні та 2 негативні, деталі — у [`docs/ai-log.md`](ai-log.md), Записи 6–9):
 
-| № у `ai-log.md` | Запит | Очікування Skill | Фактична поведінка | Результат |
+| Запис | Запит оператора | Очікування | Фактична поведінка агента | Підсумок |
 | :--- | :--- | :--- | :--- | :--- |
-| **Запис 6** | «Додай `PATCH /issues/{id}/status` за таблицею станів» | Активація `tracker-slice` | Активовано; визначено Зріз B, прочитано потрібні розділи `docs/`, перелічено перевірки `AC-05-01`, `AC-05-02`, `T07–T10`, `T14`, подано план із 4 пунктів | **Пройдено** |
-| **Запис 7** | «Реалізуй додавання коментаря до заявки» | Активація `tracker-slice` | Активовано; виявлено відсутність `references/slices.md`, використано `docs/` напряму, перелічено перевірки `AC-07-01`, `AC-07-02`, `404`/`422`, подано план із 5 пунктів | **Пройдено із зауваженням** |
+| **Запис 6** | «Додай `PATCH /issues/{id}/status` за таблицею станів» | Активація | Активовано; визначено Зріз B, прочитано релевантні розділи `docs/`, сформовано план із 4 пунктів без передчасного кодування | **Пройдено** |
+| **Запис 7** | «Реалізуй додавання коментаря до заявки» | Активація | Активовано; зафіксовано відсутність `references/slices.md` на тому етапі, прочитано `docs/` напряму, складено план із 5 пунктів | **Пройдено із зауваженням** |
 | **Запис 8** | «Поясни, чим 409 відрізняється від 422» | Не активувати | Не активовано; надано чітке розмежування конфлікту стану (`409`) та невалідного payload (`422`) | **Пройдено** |
-| **Запис 9** | «Як створити віртуальне середовище у Windows?» | Не активувати | Не активовано; надано команди `venv` для PowerShell і CMD | **Пройдено** |
-| **Запис 10** | Реалізація мінімального каркасу застосунку (Крок 1) | Не активувати | Не активовано; реалізовано базовий каркас без бізнес-маршрутів зрізів A–D | **Пройдено** |
-| **Запис 11** | Реалізація Зрізу A (`POST /issues`, `GET /issues`, `GET /issues/{id}`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → мінімальний diff → `pytest` `26 passed`, `ruff` `All checks passed!`) | **Пройдено** |
-| **Запис 12** | Реалізація Зрізу B (`PATCH /issues/{id}`, `PATCH /issues/{id}/status`) | Активація `tracker-slice` | Активовано; виявлено й узгоджено суперечність `{}` із `docs/`, виконано план → `pytest` `66 passed`, `ruff` `All checks passed!` | **Пройдено** |
-| **Запис 13** | Реалізація Зрізу C (`POST/GET /issues/{id}/comments`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → diff → `pytest` `97 passed`, `ruff` `All checks passed!`) | **Пройдено** |
+| **Запис 9** | «Як створити віртуальне середовище у Windows?» | Не активувати | Не активовано; надано інструкцію `python -m venv .venv` для PowerShell і CMD | **Пройдено** |
 
-### 2.2. Крок 1 — Мінімальний каркас застосунку
-* **База даних (`app/database.py`)**: реалізовано `get_connection(db_path)` із `sqlite3.Row` та обов'язковим `PRAGMA foreign_keys = ON;` на кожному з'єднанні; `init_db(db_path)` створює таблиці `users`, `issues`, `comments` згідно з ER-моделлю ЛР1 (`CHECK`-обмеження для `status` і `priority`, зовнішні ключі) та ідемпотентно додає користувачів `(1, "Agent A")` і `(2, "Agent B")` через `INSERT OR IGNORE`.
-* **Точка входу (`app/main.py`)**: реалізовано фабрику `create_app(db_path: str = "data/app.db")` з викликом `init_db(db_path)`, підключенням роутера та маршрутом `GET /health` (`200 OK`, `{"status": "ok"}`); створено екземпляр `app = create_app()` для `uvicorn`.
-* **Базові модулі**: створено `app/__init__.py`, `app/schemas.py`, `app/services.py`, `app/routes.py` (`APIRouter`) без зайвих абстракцій і без бізнес-маршрутів зрізів A–D.
-* **Перевірки Кроку 1**:
-  * `.\.venv\Scripts\ruff.exe check app` (та `--select E4,E7,E9,F,I`) — `All checks passed!`.
-  * Smoke-перевірка через FastAPI `TestClient` на тимчасовій БД (`tempfile.TemporaryDirectory`) та на `app`: підтверджено `GET /health` → `200 OK`, `PRAGMA foreign_keys == 1`, наявність таблиць `users`, `issues`, `comments`, спрацювання `sqlite3.IntegrityError` при невалідному `assignee_id` та ідемпотентність повторного `init_db` без дублювання користувачів і втрати рядків у `issues`.
+Точність спрацювання тригера на Кроці 0 склала **4/4 (100%)**. Додатково на Кроці 1 (Запис 10 — базовий каркас) та при генерації документації (Запис 16) Skill коректно **не активувався**.
 
-### 2.3. Реалізація Зрізу A — Створення й читання заявок
-* **Схеми (`app/schemas.py`)**: `IssueStatus`, `IssuePriority`, `IssueCreate` (`extra="forbid"`, `strip_whitespace=True` і довжина `3..120` для `title`, `description` `0..2000` із дефолтом `""`, `priority="medium"`, `assignee_id` лише `1 | 2 | None` із відхиленням `bool`) та `IssueRead`.
-* **БД і сервіс (`app/database.py`, `app/services.py`)**: параметризовані функції `insert_issue`, `list_issues` (`ORDER BY created_at ASC, id ASC`), `get_issue_by_id`; у сервісі — `IssueNotFoundError`, `create_issue` (`status="OPEN"`, UTC `YYYY-MM-DDTHH:MM:SSZ`), `get_issues` і `get_issue`.
-* **Маршрути (`app/routes.py`)**: `POST /issues` (`201 Created`), `GET /issues` (`200 OK`, без фільтрів зрізу D), `GET /issues/{id}` (`id > 0` → `200 OK` або `404 Not Found`).
-* **Тести (`tests/conftest.py`, `tests/test_issues.py`)**: фікстура `TestClient` на `tmp_path / "test.db"` і тести для `T01, T02, T03, T13` (`AC-01-01..03`, `AC-03-01..02`), включно з персистентністю між перезапусками `create_app`.
-* **Перевірки Зрізу A**:
-  * `.\.venv\Scripts\python.exe -m pytest -q` — `26 passed` (`app.db` не змінювався).
-  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+### 2.2. Застосування `tracker-slice` у зрізах `A–D`
+- **Зріз A (`fa89d50`)**: `POST /issues`, `GET /issues`, `GET /issues/{id}` — повний цикл Skill (визначення зрізу → читання `docs/` → перелік `T01–T03, T13` → план → підтвердження → мінімальний diff → `26 passed`, `ruff` OK).
+- **Зріз B (`d775c03` / `lab02-ai-draft`)**: `PATCH /issues/{id}`, `PATCH /issues/{id}/status` — агент виявив суперечність між промптом («заборона порожнього PATCH») та `docs/requirements.md` / `docs/api-contract.md` (`{}` → `200 OK` як `no-op` для відкритих заявок, `409 Conflict` для `CLOSED`), зупинив редагування до рішення оператора і зберіг пріоритет `docs/` (`66 passed`, `ruff` OK).
+- **Зріз C (`2cc10e6`)**: `POST/GET /issues/{id}/comments` — виконано за оновленим `slices.md` (v1), перевикористано `_reject_bool_user_id` та `_utc_now_iso` без дублювання (`97 passed`, `ruff` OK).
+- **Зріз D (робочий стан `main`)**: у ч. 1 додано чисту функцію `matches_priority` та unit-тест (`99 passed`), у ч. 2 інтегровано `AND`-фільтри `status` і `priority` у `GET /issues` (`T04–T06`), усунуто дублікати функцій і тестів (`109 passed`, `ruff` OK).
 
-### 2.4. Реалізація Зрізу B — Оновлення, матриця станів $3 \times 3$ та захист `CLOSED`
-* **Схеми (`app/schemas.py`)**: винесено спільний тип `AssigneeId` (`[1, 2] | None`, відхилення `bool`), додано `IssueUpdate` (`extra="forbid"`, валідатор `reject_null_for_non_nullable_fields` для `title`/`description`/`priority`) та `IssueStatusUpdate`.
-* **БД і сервіс (`app/database.py`, `app/services.py`)**: додано `UPDATABLE_ISSUE_COLUMNS`, параметризовані `update_issue` і `update_issue_status` у транзакції `with conn:`; у сервісі — `IssueConflictError` (`409`), матрицю переходів $3 \times 3$ (`ALLOWED_STATUS_TRANSITIONS`), `update_issue` (`exclude_unset=True`, `{}` як `no-op` для відкритих заявок) та `update_issue_status`.
-* **Маршрути (`app/routes.py`)**: `PATCH /issues/{id}` та `PATCH /issues/{id}/status` (`id > 0`, мапінг `404`/`409`).
-* **Тести (`tests/test_issues.py`)**: +40 тест-кейсів для `T07, T08, T09, T10, T14` (`{}`, заборона `status` у загальному `PATCH`, атомарність, порядок `422 → 404 → 409`).
-* **Перевірки Зрізу B**:
-  * `.\.venv\Scripts\python.exe -m pytest -q` — `66 passed`.
-  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
-
-### 2.5. Реалізація Зрізу C — Додавання та перегляд коментарів
-* **Схеми (`app/schemas.py`)**: узагальнено `_reject_bool_user_id`, додано `TrimmedCommentText` (`strip_whitespace=True`, `1..1000`), `AuthorId` (`1 | 2`, без `bool` і `null`), `CommentCreate` (`extra="forbid"`) та `CommentRead`.
-* **БД і сервіс (`app/database.py`, `app/services.py`)**: додано параметризовані `insert_comment` і `list_comments` (`ORDER BY created_at ASC, id ASC`); у сервісі винесено `_utc_now_iso`, реалізовано `add_comment` і `get_comments` (`IssueNotFoundError → 404`, без блокування `CLOSED`).
-* **Маршрути (`app/routes.py`)**: `POST /issues/{id}/comments` (`201 Created`) і `GET /issues/{id}/comments` (`200 OK`) з валідацією `id > 0` (`422`) та мапінгом `404`.
-* **Тести (`tests/test_comments.py`)**: +31 тест-кейс для сценаріїв `T11` і `T12` на ізольованій БД (`tmp_path`), включно з `trim`, межами довжини, пріоритетом `422 → 404`, коментуванням і читанням `CLOSED`, сортуванням та персистентністю.
-* **Перевірки Зрізу C**:
-  * `.\.venv\Scripts\python.exe -m pytest -q` — `97 passed, 1 warning in 4.25s` (`data/app.db` не змінювався).
-  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+### 2.3. Обґрунтування зміни Skill `v0 → v1`
+1. **Фіксація структури довідника (`1e31f86`, `lab02-skill-v0`)**: після Запису 7 файл `references/slices.md` перенесено з `.agents/skills/references/slices.md` всередину `.agents/skills/tracker-slice/references/slices.md`, щоб відносне посилання зі `SKILL.md` працювало коректно та фіксувало пласку структуру `app/`.
+2. **Оновлення `v0 → v1` (`62fd03c`)**: під час планування **Зрізу B** з'ясувалося, що `app/database.py` після Кроку 1 та Зрізу A містить лише `insert_issue`, `list_issues` і `get_issue_by_id`, тому функції оновлення (`update_issue`, `update_issue_status`) для Зрізу B та операції коментарів (`insert_comment`, `list_comments`) для Зрізу C неможливо реалізувати без змін у `app/database.py`. Через жорстку вимогу `SKILL.md` редагувати «лише дозволені для зрізу файли» файл `database.py` було офіційно додано до переліку дозволених файлів зрізів **B** і **C** у [`references/slices.md`](../.agents/skills/tracker-slice/references/slices.md). У самому `references/slices.md` на майбутнє залишається уточнити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` конкретними ID з `docs/requirements.md`.
 
 ---
 
-## 3. Рев'ю планів та diff (Крок 1, Зрізи A, B і C)
+## 3. Порівняння `lab02-ai-draft` та фінальної версії
 
-1. **Захист специфікації `docs/` як Single Source of Truth**: під час планування Зрізу B агент виявив суперечність між формулюванням у промпті («заборона порожнього PATCH») і контрактом у `docs/requirements.md` та `docs/api-contract.md` (`{}` → `200 OK` як `no-op` для відкритої заявки, `409 Conflict` для `CLOSED`). Роботу було зупинено до підтвердження оператора, що запобігло поломці контракту.
-2. **Дотримання меж, перевикористання та безпеки**: у Кроці 1 та Зрізах A–C збережено скоуп (Зріз D і `GET /users` не чіпалися), параметризовані запити з allowlist колонок, `PRAGMA foreign_keys = ON`, `extra="forbid"`, перевикористання спільних хелперів (`_reject_bool_user_id`, `_utc_now_iso`) без дублювання логіки та ізоляцію тестів у `tmp_path`.
-3. **Узгодження структури модулів**: зафіксовану в Кроці 1 пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`) без конфліктів використано у Зрізах A, B і C.
+Тег `lab02-ai-draft` (`d775c03`) фіксує первинну AI-реалізацію після завершення Зрізу B (`app/database.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`, `tests/test_issues.py`). Порівняння з фінальним кодом охоплює як уже закладені механізми безпеки, так і наступне розширення для Зрізів C і D:
 
----
-
-## 4. Зміни Skill `tracker-slice` (`v0 → v1`)
-
-За результатами тестування `v0` та виконання Кроку 1:
-
-1. **Виконано — додано `references/slices.md`**: довідник перенесено всередину теки скіла ([.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md)), де зафіксовано зрізи `A–D` і єдину пласку структуру файлів `app/`.
-2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md), додати `database.py` до переліку дозволених файлів Зрізів B і C (оскільки функції `UPDATE`/`INSERT`/`SELECT` для них додавалися в `app/database.py`) та уточнити поведінку при порожньому каркасі `app/`.
+| Критерій перевірки | Стан у `lab02-ai-draft` (`d775c03`) | Стан у фінальній версії (`HEAD` + Зріз D) | Висновок рев'ю |
+| :--- | :--- | :--- | :--- |
+| **Параметризований SQL** | Усі значення в `insert_issue`, `list_issues`, `_fetch_issue_row`, `update_issue`, `update_issue_status` передаються через `?`-параметри; динамічні імена колонок в `update_issue` обмежуються allowlist-множиною `UPDATABLE_ISSUE_COLUMNS` | Додано `insert_comment` і `list_comments` у `app/database.py` — також виключно з `?`-плейсхолдерами (`VALUES (?, ?, ?, ?)`, `WHERE issue_id = ?`); у Зрізі D фільтрація `AND` виконується у сервісі без конкатенації SQL | **Безпечно**: ін'єкції SQL виключені в обох версіях |
+| **Атомарність `PATCH`** | Дворівнева: `IssueUpdate` (`extra="forbid"`, `reject_null_for_non_nullable_fields`, `TrimmedTitle`, `AssigneeId`) відсікає змішаний невалідний пакет до БД (`422`), а `update_issue` виконує один `UPDATE` всередині `with conn:` | Повністю збережено та підтверджено параметризованими тестами `test_t14_patch_atomicity_forbidden_fields_and_status_rejection` і `test_t14_empty_patch_is_noop_for_open_and_409_for_closed` | **Коректно**: принцип «все або нічого» гарантований |
+| **Заборона `bool` як `int`** | У `app/schemas.py` функція `_reject_bool_assignee` у `BeforeValidator` для `AssigneeId` відхиляє `True`/`False`, не даючи Python трактувати `True == 1` | Узагальнено в `_reject_bool_user_id` і перевикористано одночасно в `AssigneeId` і `AuthorId`; покрито тестами `{"assignee_id": True}` і `{"author_id": True/False}` → `422` | **Покращено**: усунуто дублювання, захищено обидві сутності |
+| **Розвиток функціоналу та чистота коду** | Реалізовано Крок 1, Зріз A і Зріз B (`66` тестів) | Додано Зріз C (`tests/test_comments.py`) і Зріз D (`matches_status`, `matches_priority`, фільтри `GET /issues`), видалено дублікат `matches_priority` та `test_matches_priority` (`109` тестів) | **Завершено**: усі зрізи `A–D` узгоджені зі специфікацією |
 
 ---
 
-## 5. Пов'язані артефакти
+## 4. Аналіз мікроексперименту (`no-AI` vs `AI + Skill`)
 
-* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–13 для ЛР-02)
-* [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md) — Специфікація Skill `tracker-slice`
-* [.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md) — Довідник зрізів `A–D`
-* [tests/test_issues.py](../tests/test_issues.py) — Автотести Зрізів A і B (`T01–T03, T07–T10, T13, T14`)
-* [tests/test_comments.py](../tests/test_comments.py) — Автотести Зрізу C (`T11, T12`)
-* [docs/api-contract.md](api-contract.md) — Контракт REST API (Single Source of Truth)
-* [docs/requirements.md](requirements.md) — Вимоги та критерії приймання
+Заміри зафіксовано у [`docs/experiment-lr2.csv`](experiment-lr2.csv) на двох зіставних чистих функціях фільтрації зі Зрізу D та їхніх unit-тестах:
+
+| Задача | Виконавець | Режим | Skill | Час (сек) | Перший результат тестів | Правки | Інструмент / модель |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `matches_status` | Студент | `no-AI` | `N/A` | `73` | `3/3 (100%)` | `0` | Ручна реалізація |
+| `matches_priority` | Студент + AI | `AI + Skill` | `Так` | `84` | `3/3 (100%)` | `0` (`1` перезапуск тестів агентом) | Antigravity IDE (Hydrogen) |
+
+- **Чому `AI + Skill` зайняв на 11 с більше (`84 с` проти `73 с`)**: для тривіальної 4-рядкової функції за готовим зразком `matches_status` накладні витрати на передачу контексту, виконання процедури `tracker-slice` (читання розділів `docs/`, формування плану, підтвердження оператора) та 1 повторний запуск перевірки агентом через `.venv` перевищили час самої реалізації.
+- **Практичний висновок**: на мікрозадачах обсягом 3–5 рядків ручне кодування швидше; перевага `AI + Skill` проявляється на багатофайлових вертикальних зрізах (`A–C`), де потрібно синхронно оновити `schemas.py`, `database.py`, `services.py`, `routes.py` і створити 25–40 тест-кейсів без порушення контракту.
+- **Обмеження валідності**: експеримент проводився послідовно одним виконавцем (ефект перенесення контексту після першої функції), на дуже малому обсязі коду (`n = 1` пара задач), тому результати не можна узагальнювати на великі фічі.
+
+---
+
+## 5. Фактичні результати `pytest` і `ruff`
+
+Після завершення всіх змін коду, тестів та звітної документації виконано перевірки з кореня репозиторію через ізольоване середовище `.venv`:
+
+- **Автотести**:
+  `.\.venv\Scripts\python.exe -m pytest -q` → **`109 passed, 1 warning`** (попередження `StarletteDeprecationWarning` усередині стороннього `fastapi/testclient.py` щодо `httpx2`; усі тести ізольовані в `tmp_path`, робочий `data/app.db` не зачіпається).
+- **Статичний аналіз**:
+  `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` → **`All checks passed!`** (0 помилок стилю, імпортів та невикористаних імен).
+
+---
+
+## 6. Короткі відповіді на контрольні питання (8 питань)
+
+> *Примітка*: окремий файл методички ЛР2 у цьому репозиторії відсутній, тому 8 питань нижче сформульовано за основними темами лабораторної роботи та фактично виконаними кроками.
+
+1. **Навіщо розбивати реалізацію сервісу на вертикальні зрізи (`A–D`), а не генерувати весь застосунок одним промптом?**  
+   Вертикальні зрізи обмежують розмір `diff`, спрощують перевірку відповідності `docs/api-contract.md`, зменшують ризик галюцинацій і дозволяють верифікувати кожну бізнес-функцію автотестами одразу після її додавання.
+2. **Яку роль відіграють артефакти `docs/` ЛР1 під час роботи з AI-асистентом у ЛР2?**  
+   `docs/requirements.md` та `docs/api-contract.md` виступають єдиним джерелом істини (Single Source of Truth): вони запобігають розповзанню скоупу та дозволяють виявляти суперечності у промптах (як кейс `{}` у Зрізі B).
+3. **Що таке Agent Skill і як працює принцип поступового завантаження контексту (`progressive disclosure`)?**  
+   Agent Skill — це структурована інструкція (`SKILL.md` + `references/`), яка активується за `description` лише на релевантних задачах і направляє агента читати не весь репозиторій, а лише визначені для конкретного зрізу розділи `docs/`.
+4. **Чому на Кроці 0 важливо тестувати як позитивні, так і негативні запити активації Skill?**  
+   Позитивні тести перевіряють дотримання процедури (план до коду, правильні шари), а негативні (теоретичні питання, налаштування `venv`, редагування `README.md`) гарантують відсутність хибного спрацювання та зайвих змін коду.
+5. **Яку проблему виявило практичне застосування Skill `tracker-slice` v0 і як її вирішено у v1?**  
+   У v0 файл `references/slices.md` опинився поза текою скіла й не містив `database.py` у списках файлів Зрізів B і C. У v1 довідник перенесено всередину теки скіла, а `database.py` додано до дозволених файлів Зрізів B і C (`62fd03c`).
+6. **Як забезпечується захист від SQL-ін'єкцій та збереження цілісності даних у SQLite?**  
+   Усі значення передаються в SQLite лише як параметри (`?`), динамічні імена колонок в `update_issue` проходять через `UPDATABLE_ISSUE_COLUMNS`, а на кожному з'єднанні вмикається `PRAGMA foreign_keys = ON;`.
+7. **Чому в Pydantic-схемах для `assignee_id` та `author_id` потрібна явна перевірка на `bool`?**  
+   У Python `bool` успадковується від `int` (`True == 1`), тому без `BeforeValidator(_reject_bool_user_id)` булеві значення проходили б валідацію `1 | 2`.
+8. **Чому для тестів використовується `tmp_path` і фіксовані залежності в `requirements-lock.txt`?**  
+   `tmp_path / "test.db"` ізолює тести від робочої БД `data/app.db` і дозволяє перевіряти персистентність між перезапусками `create_app`, а `requirements-lock.txt` забезпечує відтворюваний локальний запуск (`NFR-01`, `NFR-02`).
+
+---
+
+## 7. Пов'язані артефакти
+
+* [`README.md`](../README.md) — інструкція запуску, приклади `curl`-запитів і навчальні обмеження
+* [`docs/experiment-lr2.csv`](experiment-lr2.csv) — таблиця мікроексперименту (`no-AI` vs `AI + Skill`)
+* [`docs/traceability.csv`](traceability.csv) — актуалізована матриця простежуваності `FR → US/AC → Тести`
+* [`docs/ai-log.md`](ai-log.md) — журнал взаємодії з AI-асистентом (Записи 6–16 для ЛР-02)
+* [`.agents/skills/tracker-slice/SKILL.md`](../.agents/skills/tracker-slice/SKILL.md) та [`.agents/skills/tracker-slice/references/slices.md`](../.agents/skills/tracker-slice/references/slices.md) — специфікація Skill `tracker-slice` (v1)
+* [`tests/test_issues.py`](../tests/test_issues.py) та [`tests/test_comments.py`](../tests/test_comments.py) — набір із 109 автотестів для сценаріїв `T01–T14`

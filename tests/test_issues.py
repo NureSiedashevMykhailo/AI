@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.services import matches_priority, matches_status
 
 UTC_ISO_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
@@ -432,3 +433,125 @@ def test_t14_empty_patch_is_noop_for_open_and_409_for_closed(
     closed_noop = client.patch(f"/issues/{issue_id}", json={})
     assert closed_noop.status_code == 409
     assert isinstance(closed_noop.json().get("detail"), str)
+
+def test_matches_status():
+    issue = {"status": "OPEN"}
+    assert matches_status(issue, None) is True
+    assert matches_status(issue, "OPEN") is True
+    assert matches_status(issue, "CLOSED") is False
+
+
+def test_matches_priority() -> None:
+    issue = {"priority": "high"}
+    assert matches_priority(issue, None) is True
+    assert matches_priority(issue, "high") is True
+    assert matches_priority(issue, "low") is False
+    assert matches_priority(issue, "HIGH") is False
+    assert issue == {"priority": "high"}
+
+
+def test_t04_filter_issues_by_status_priority_and_combined_and(
+    client: TestClient,
+) -> None:
+    open_high_1 = _create_sample_issue(client, title="Open high 1", priority="high")
+    open_low = _create_sample_issue(client, title="Open low", priority="low")
+    in_progress_high = _create_sample_issue(
+        client,
+        title="In progress high",
+        priority="high",
+    )
+    in_progress_high = client.patch(
+        f"/issues/{in_progress_high['id']}/status",
+        json={"status": "IN_PROGRESS"},
+    ).json()
+    closed_medium = _create_sample_issue(
+        client,
+        title="Closed medium",
+        priority="medium",
+    )
+    closed_medium = client.patch(
+        f"/issues/{closed_medium['id']}/status",
+        json={"status": "CLOSED"},
+    ).json()
+    open_high_2 = _create_sample_issue(client, title="Open high 2", priority="high")
+
+    all_resp = client.get("/issues")
+    assert all_resp.status_code == 200
+    assert all_resp.json() == [
+        open_high_1,
+        open_low,
+        in_progress_high,
+        closed_medium,
+        open_high_2,
+    ]
+
+    by_status = client.get("/issues", params={"status": "OPEN"})
+    assert by_status.status_code == 200
+    assert by_status.json() == [open_high_1, open_low, open_high_2]
+
+    by_status_ip = client.get("/issues", params={"status": "IN_PROGRESS"})
+    assert by_status_ip.status_code == 200
+    assert by_status_ip.json() == [in_progress_high]
+
+    by_priority = client.get("/issues", params={"priority": "high"})
+    assert by_priority.status_code == 200
+    assert by_priority.json() == [open_high_1, in_progress_high, open_high_2]
+
+    combined = client.get("/issues", params={"status": "OPEN", "priority": "high"})
+    assert combined.status_code == 200
+    assert combined.json() == [open_high_1, open_high_2]
+
+
+def test_t05_filter_issues_no_matches_returns_empty_list_200(
+    client: TestClient,
+) -> None:
+    empty_db_resp = client.get(
+        "/issues",
+        params={"status": "OPEN", "priority": "high"},
+    )
+    assert empty_db_resp.status_code == 200
+    assert empty_db_resp.json() == []
+
+    _create_sample_issue(client, title="Open high", priority="high")
+    ip_issue = _create_sample_issue(client, title="In progress medium", priority="medium")
+    client.patch(f"/issues/{ip_issue['id']}/status", json={"status": "IN_PROGRESS"})
+
+    no_combined = client.get(
+        "/issues",
+        params={"status": "CLOSED", "priority": "low"},
+    )
+    assert no_combined.status_code == 200
+    assert no_combined.json() == []
+
+    no_status = client.get("/issues", params={"status": "CLOSED"})
+    assert no_status.status_code == 200
+    assert no_status.json() == []
+
+    no_priority = client.get("/issues", params={"priority": "low"})
+    assert no_priority.status_code == 200
+    assert no_priority.json() == []
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "status=open",
+        "status=DONE",
+        "status=",
+        "priority=HIGH",
+        "priority=urgent",
+        "priority=",
+        "status=OPEN&priority=HIGH",
+        "status=invalid&priority=high",
+    ],
+)
+def test_t06_filter_issues_invalid_query_params_returns_422(
+    client: TestClient,
+    query: str,
+) -> None:
+    response = client.get(f"/issues?{query}")
+
+    assert response.status_code == 422
+    body = response.json()
+    assert isinstance(body.get("detail"), list)
+    assert len(body["detail"]) >= 1

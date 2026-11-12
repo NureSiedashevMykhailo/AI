@@ -9,7 +9,9 @@ from app.schemas import (
     CommentCreate,
     CommentRead,
     IssueCreate,
+    IssuePriority,
     IssueRead,
+    IssueStatus,
     IssueStatusUpdate,
     IssueUpdate,
 )
@@ -28,8 +30,12 @@ def create_issue_endpoint(payload: IssueCreate, request: Request) -> IssueRead:
 
 
 @router.get("/issues", response_model=list[IssueRead], status_code=status.HTTP_200_OK)
-def list_issues_endpoint(request: Request) -> list[IssueRead]:
-    return services.get_issues(_get_db_path(request))
+def list_issues_endpoint(
+    request: Request,
+    status: IssueStatus | None = None,
+    priority: IssuePriority | None = None,
+) -> list[IssueRead]:
+    return services.get_issues(_get_db_path(request), status=status, priority=priority)
 
 
 @router.get("/issues/{id}", response_model=IssueRead, status_code=status.HTTP_200_OK)

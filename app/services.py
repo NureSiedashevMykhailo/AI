@@ -8,6 +8,7 @@ from app.schemas import (
     CommentCreate,
     CommentRead,
     IssueCreate,
+    IssuePriority,
     IssueRead,
     IssueStatus,
     IssueStatusUpdate,
@@ -60,10 +61,20 @@ def create_issue(db_path: str | Path, payload: IssueCreate) -> IssueRead:
     return IssueRead(**row)
 
 
-def get_issues(db_path: str | Path) -> list[IssueRead]:
-    """Return all issues ordered by created_at ASC, id ASC."""
+def get_issues(
+    db_path: str | Path,
+    status: IssueStatus | str | None = None,
+    priority: IssuePriority | str | None = None,
+) -> list[IssueRead]:
+    """Return issues matching optional status and priority filters (AND), ordered by created_at ASC, id ASC."""
+    status_value = status.value if isinstance(status, IssueStatus) else status
+    priority_value = priority.value if isinstance(priority, IssuePriority) else priority
     rows = database.list_issues(db_path)
-    return [IssueRead(**row) for row in rows]
+    return [
+        IssueRead(**row)
+        for row in rows
+        if matches_status(row, status_value) and matches_priority(row, priority_value)
+    ]
 
 
 def get_issue(db_path: str | Path, issue_id: int) -> IssueRead:
@@ -148,3 +159,16 @@ def get_comments(db_path: str | Path, issue_id: int) -> list[CommentRead]:
 
     rows = database.list_comments(db_path, issue_id)
     return [CommentRead(**row) for row in rows]
+
+def matches_status(issue: dict, value: str | None) -> bool:
+    """Return True if value is None or issue status matches value exactly."""
+    if value is None:
+        return True
+    return issue["status"] == value
+
+
+def matches_priority(issue: dict, value: str | None) -> bool:
+    """Return True if value is None or issue priority matches value exactly."""
+    if value is None:
+        return True
+    return issue["priority"] == value

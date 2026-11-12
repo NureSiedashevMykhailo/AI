@@ -245,7 +245,7 @@
   * `.\.venv\Scripts\python.exe -m pytest -q` — `26 passed` (1 попередження `StarletteDeprecationWarning` усередині `fastapi/testclient.py`); `app.db` не змінювався.
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
   * **Ручна перевірка**: підтверджено дотримання процедури `tracker-slice` (план затверджено до внесення змін), розподілу шарів, відсутність виходу за межі скоупу (зрізи B, C, D та `GET /users` не чіпалися).
-* **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/conftest.py`, `tests/test_issues.py` | Commit: `54b5ed2` (`feat(slice-a): implement issue creation, listing and details`).
+* **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/conftest.py`, `tests/test_issues.py` | Commit: `fa89d50` (`feat(slice-a): implement issue creation, listing and details`).
 
 ---
 
@@ -273,7 +273,7 @@
   * `.\.venv\Scripts\python.exe -m pytest -q` — `66 passed` (1 попередження `StarletteDeprecationWarning` усередині `fastapi/testclient.py`).
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
   * **Ручна перевірка**: підтверджено дотримання `tracker-slice` (захист специфікації `docs/` від суперечливої вимоги у промпті), відсутність зайвого рефакторингу та збереження меж скоупу (зрізи C, D та `GET /users` не чіпалися).
-* **Пов'язаний артефакт / Статус**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_issues.py` — реалізовано та перевірено (рішення щодо коміту за оператором).
+* **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_issues.py` | Commit: `d775c03` (`chore(slice-b): save initial AI patch draft`, Tag: `lab02-ai-draft`).
 
 ---
 
@@ -298,4 +298,75 @@
   * `.\.venv\Scripts\python.exe -m pytest -q` — `97 passed, 1 warning in 4.25s` (`data/app.db` не змінювався).
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
   * **Ручна перевірка**: підтверджено перевикористання спільних хелперів (`_reject_bool_user_id`, `_utc_now_iso`) без дублювання логіки, дотримання `422 → 404` та збереження меж скоупу (Зріз D не чіпався).
-* **Пов'язаний артефакт / Статус**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_comments.py` — реалізовано та перевірено (рішення щодо коміту за оператором).
+* **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_comments.py` | Commit: `2cc10e6` (`feat(slice-c): implement issue comments endpoints and tests`).
+
+---
+
+## Запис 14. Реалізація Зрізу D (частина 1): чиста функція `matches_priority` (ЛР-02, Skill `tracker-slice`)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode)
+* **Активність Skill**: `tracker-slice` — **активовано** (зріз D → читання `docs/` → перевірки → план → мінімальний diff → `pytest` і `ruff`).
+* **Етап**: Реалізація першої частини Зрізу D (фільтр `priority` на рівні сервісу без інтеграції в `GET /issues`).
+* **Мета**: Реалізувати чисту функцію `matches_priority(issue, value)` у `app/services.py` без мутації вхідного об'єкта та без звернень до БД, і покрити її unit-тестом у `tests/test_issues.py`.
+* **Переданий контекст**: `docs/api-contract.md` (Розділ 2.4 `GET /issues`), `docs/requirements.md` (`US-02`, `AC-02-01`, `AC-02-02`, правила фільтрації `AND`), `docs/traceability.csv` (`FR-02 / US-02`).
+* **Ключовий запит (Prompt)**:
+  > «Використай Skill tracker-slice для першої частини зрізу D: реалізуй у app/services.py чисту функцію matches_priority(issue, value) (якщо value is None — повертає True, інакше перевіряє точну рівність пріоритету значенню value; не змінює вхідний об'єкт і не звертається до БД). Додай unit-тести для matches_priority у tests/test_issues.py за аналогією з тестами matches_status та запусти pytest і ruff. Інтеграцію фільтрів у GET /issues поки не роби.»
+* **Що реалізовано**:
+  * `app/services.py`: додано чисту функцію `matches_priority(issue: dict, value: str | None) -> bool` (повертає `True` при `value is None`, інакше перевіряє точну регістрозалежну рівність `issue["priority"] == value` без мутації `issue` і без запитів до БД).
+  * `tests/test_issues.py`: додано імпорт `matches_priority` та unit-тест `test_matches_priority` (`None`, точний збіг `"high"`, незбіг `"low"`, регістрозалежність `"HIGH"` та перевірка незмінності `issue`).
+* **Спосіб перевірки та ручний аналіз**:
+  * Глобальний `python -m ruff ...` не знайшов модуль (`No module named ruff`), бо `ruff` встановлено у `.venv`.
+  * `.venv\Scripts\python.exe -m pytest -q` — `99 passed, 1 warning in 4.35s`.
+  * `.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+  * **Ручна перевірка**: підтверджено чистоту функції (без побічних ефектів і БД) та дотримання скоупу (інтеграція фільтрів у `GET /issues` не виконувалась).
+* **Пов'язаний артефакт / Статус**: `app/services.py`, `tests/test_issues.py` — реалізовано та перевірено; інтеграцію фільтрів у `GET /issues` відкладено до наступного кроку.
+
+---
+
+## Запис 15. Завершення Зрізу D: інтеграція фільтрів `AND` у `GET /issues` (ЛР-02, Skill `tracker-slice`)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode)
+* **Активність Skill**: `tracker-slice` — **активовано** (зріз D → читання `docs/` → перевірки → план → diff → `pytest` і `ruff`).
+* **Етап**: Завершення Зрізу D (`GET /issues?status=...&priority=...` за логікою `AND`).
+* **Мета**: Інтегрувати `matches_status` та `matches_priority` у `GET /issues` зі збереженням порядку `created_at ASC, id ASC`, суворою `422`-валідацією параметрів, `200 OK []` при відсутності збігів та тестами `T04, T05, T06`.
+* **Переданий контекст**: `docs/api-contract.md` (Розділ 2.4 `GET /issues`), `docs/requirements.md` (`US-02`, `AC-02-01`, `AC-02-02`, Розділи 7.2–7.3).
+* **Ключовий запит (Prompt)**:
+  > «Використай Skill tracker-slice для завершення зрізу D: інтегруй matches_status та matches_priority за логікою AND у маршрут GET /issues (query-параметри status та priority). Переконайся, що невалідні значення status або priority повертають 422, а відсутність збігів повертає [] та 200 OK. Додай тести для сценаріїв T04, T05, T06 у tests/test_issues.py та запусти pytest і ruff.»
+* **Що реалізовано**:
+  * `app/services.py`: оновлено `get_issues(db_path, status=None, priority=None)` для фільтрації через `matches_status(row, status_value) and matches_priority(row, priority_value)` зі збереженням порядку з `database.list_issues`; видалено дублікат `matches_priority` і додано docstring до `matches_status`.
+  * `app/routes.py`: у `list_issues_endpoint` додано типізовані query-параметри `status: IssueStatus | None = None` і `priority: IssuePriority | None = None` (для `422`-валідації на рівні схеми) та передачу їх у `services.get_issues`.
+  * `tests/test_issues.py`: видалено дублікат `test_matches_priority`; додано тести для сценаріїв `T04` (окрема й комбінована `AND`-фільтрація), `T05` (`200 OK` та `[]`) і `T06` (невалідні/регістрозалежні query-параметри → `422`).
+* **Спосіб перевірки та ручний аналіз**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `109 passed, 1 warning in 4.85s` (глобальний `python -m pytest -q` також `109 passed in 4.59s`).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+  * **Ручна перевірка**: підтверджено видалення дублікатів `matches_priority` / `test_matches_priority`, збереження хронологічного порядку та повне покриття всіх 4 зрізів `A–D` (`T01–T14`).
+* **Пов'язаний артефакт / Статус**: `app/services.py`, `app/routes.py`, `tests/test_issues.py` — реалізовано та перевірено (рішення щодо коміту за оператором).
+
+---
+
+## Запис 16. Формування фінальних документів звітності та `README.md` (ЛР-02)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Hydrogen (High)
+* **Активність Skill**: `tracker-slice` — **не активовано** (запит стосується підготовки звітної документації, CSV-таблиць і `README.md`, що прямо виключено з тригера Skill у `.agents/skills/tracker-slice/SKILL.md`).
+* **Етап**: Фіналізація звітності ЛР-02 (`docs/experiment-lr2.csv`, `docs/lab-02.md`, `docs/ai-log.md`, `docs/traceability.csv`, `README.md`).
+* **Мета**: Зібрати й синхронізувати фінальні документи ЛР-02 на основі фактичного стану коду, тестів (`pytest`), лінтера (`ruff`) та `git`-історії (`lab01-spec`, `lab02-skill-v0`, `lab02-ai-draft`, `62fd03c`, `2cc10e6` і незакомічених змін Зрізу D).
+* **Переданий контекст**: Файли `app/*.py`, `tests/*.py`, `docs/*.md`, `docs/traceability.csv`, `requirements-lock.txt`, `.agents/skills/tracker-slice/*`, `git log` та `git diff` проти `lab02-ai-draft`.
+* **Ключовий запит (Prompt)**:
+  > «Підготуй усі фінальні документи звітності для ЛР2 українською мовою, спираючись на реальний стан коду, тестів та git-історії в цьому репозиторії: 1) docs/experiment-lr2.csv ... 2) docs/lab-02.md ... 3) docs/ai-log.md ... 4) docs/traceability.csv ... 5) README.md ...»
+* **Що реалізовано**:
+  * `docs/experiment-lr2.csv`: зафіксовано порівняльний мікроексперимент для `matches_status` (`no-AI`, `73 с`) та `matches_priority` (`AI + Skill`, `84 с`).
+  * `docs/traceability.csv`: замінено заглушки майбутніх тестів на реальні імена тестових функцій із `tests/test_issues.py` та `tests/test_comments.py` для сценаріїв `T01–T14` (окрім резерву `FR-08` для ЛР4).
+  * `docs/lab-02.md`: оновлено фінальний звіт (реалізовані `FR-01–FR-07`, розділ «Skill» із результатами Кроку 0 та обґрунтуванням `v0 → v1`, порівняння `lab02-ai-draft` і фінальної версії, аналіз мікроексперименту, результати `pytest` і `ruff`, стислі відповіді на 8 контрольних питань).
+  * `docs/ai-log.md`: актуалізовано посилання на коміти у записах Зрізів A–C без видалення попередніх записів і додано Запис 16.
+  * `README.md`: створено інструкцію запуску (Python `3.11+` / перевірено `3.13.1`, `.venv`, `requirements-lock.txt`, `uvicorn 127.0.0.1:8000`, `pytest`, `ruff`, приклади `curl`, навчальні обмеження).
+* **Спосіб перевірки та ручний аналіз**:
+  * Звірено кожне ім'я тестової функції в `docs/traceability.csv` із виводом `pytest -v` та вихідним кодом `tests/test_issues.py` і `tests/test_comments.py`.
+  * Виконано `.\.venv\Scripts\python.exe -m pytest -q` та `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` після фінального редагування документів.
+  * **Ручна перевірка**: перевірено, що в `docs/lab-02.md` і `README.md` чесно відображено межі реалізації (`FR-08` поза обсягом; `GET /users` не входив до зрізів `A–D` і відсутній у `app/routes.py`) без домислювання фактів.
+* **Пов'язаний артефакт / Статус**: `docs/experiment-lr2.csv`, `docs/lab-02.md`, `docs/ai-log.md`, `docs/traceability.csv`, `README.md` — підготовлено та перевірено (рішення щодо коміту за оператором).

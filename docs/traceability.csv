@@ -1,22 +1,22 @@
 Functional Requirement,User Story / Acceptance criteria,Component / API,Future test
-FR-01,US-01 / AC-01-01,POST /issues (Service Layer / API Layer),test_create_issue_defaults_success
-FR-01,US-01 / AC-01-02,POST /issues (API Layer / Schemas),test_create_issue_short_trimmed_title_returns_422
-FR-02,US-02 / AC-02-01,GET /issues (Service Layer / Repository),test_list_issues_combined_and_filter_sorted
-FR-02,US-02 / AC-02-02,GET /issues (Service Layer / Repository),test_list_issues_empty_filter_returns_200_empty_list
-FR-02,US-03 / AC-03-01,GET /issues/{id} (Service Layer),test_get_issue_by_id_success
-FR-02,US-03 / AC-03-02,GET /issues/{id} (Service Layer),test_get_nonexistent_issue_returns_404
-FR-03,US-04 / AC-04-01,PATCH /issues/{id} (Service Layer / API Layer),test_patch_issue_partial_update_and_preserve_fields
-FR-03,US-06 / AC-06-01,PATCH /issues/{id} (Service Layer),test_patch_closed_issue_returns_409
-FR-04,US-05 / AC-05-01,PATCH /issues/{id}/status (Service Layer),test_status_transition_and_idempotency
-FR-04,US-05 / AC-05-02,PATCH /issues/{id}/status (Service Layer),test_closed_cannot_reopen
-FR-04,US-06 / AC-06-02,GET /issues/{id} (Service Layer),test_get_closed_issue_allowed
-FR-05,US-04 / AC-04-04 & AC-04-01,GET /users & PATCH /issues/{id} (Service Layer),test_assign_and_unassign_predefined_user
-FR-05,US-04 / AC-04-03,PATCH /issues/{id} (API Layer / Schemas),test_assign_unknown_user_returns_422
-FR-06,US-07 / AC-07-01,POST /issues/{id}/comments (Service Layer),test_add_comment_on_closed_issue_returns_201
-FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),test_add_whitespace_only_comment_returns_422
-FR-06,US-07 / AC-07-03,GET /issues/{id}/comments (Service Layer / Repository),test_list_issue_comments_chronological_order
-FR-07,US-01 / AC-01-03,Repository / SQLite (File DB),test_sqlite_persistence_across_restarts
-FR-07,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Repository),test_patch_mixed_valid_and_invalid_fields_atomic_rejection
+FR-01,US-01 / AC-01-01,POST /issues (Service Layer / API Layer),tests/test_issues.py::test_t01_create_issue_defaults_and_trim; tests/test_issues.py::test_t01_create_issue_with_optional_fields_and_boundaries
+FR-01,US-01 / AC-01-02,POST /issues (API Layer / Schemas),tests/test_issues.py::test_t02_create_issue_validation_returns_422_without_saving
+FR-02,US-02 / AC-02-01,GET /issues (Service Layer / Repository),tests/test_issues.py::test_t04_filter_issues_by_status_priority_and_combined_and; tests/test_issues.py::test_matches_status; tests/test_issues.py::test_matches_priority
+FR-02,US-02 / AC-02-02,GET /issues (Service Layer / Repository),tests/test_issues.py::test_t05_filter_issues_no_matches_returns_empty_list_200; tests/test_issues.py::test_t06_filter_issues_invalid_query_params_returns_422
+FR-02,US-03 / AC-03-01,GET /issues/{id} (Service Layer),tests/test_issues.py::test_t03_list_and_get_issue_by_id
+FR-02,US-03 / AC-03-02,GET /issues/{id} (Service Layer),tests/test_issues.py::test_t03_get_nonexistent_issue_returns_404; tests/test_issues.py::test_t03_get_issue_invalid_id_returns_422
+FR-03,US-04 / AC-04-01,PATCH /issues/{id} (Service Layer / API Layer),tests/test_issues.py::test_t07_partial_patch_and_assignee_management
+FR-03,US-06 / AC-06-01,PATCH /issues/{id} (Service Layer),tests/test_issues.py::test_t09_patch_closed_issue_returns_409_and_allows_get
+FR-04,US-05 / AC-05-01,PATCH /issues/{id}/status (Service Layer),tests/test_issues.py::test_t08_status_transition_matrix_and_idempotency
+FR-04,US-05 / AC-05-02,PATCH /issues/{id}/status (Service Layer),tests/test_issues.py::test_t08_status_transition_matrix_and_idempotency
+FR-04,US-06 / AC-06-02,GET /issues/{id} (Service Layer),tests/test_issues.py::test_t09_patch_closed_issue_returns_409_and_allows_get
+FR-05,US-04 / AC-04-04 & AC-04-01,GET /users & PATCH /issues/{id} (Service Layer),tests/test_issues.py::test_t07_partial_patch_and_assignee_management
+FR-05,US-04 / AC-04-03,PATCH /issues/{id} (API Layer / Schemas),tests/test_issues.py::test_t10_patch_issue_validation_returns_422; tests/test_issues.py::test_t10_patch_status_validation_returns_422; tests/test_issues.py::test_t10_patch_invalid_id_returns_422; tests/test_issues.py::test_t10_patch_nonexistent_issue_returns_404_after_422_check
+FR-06,US-07 / AC-07-01,POST /issues/{id}/comments (Service Layer),tests/test_comments.py::test_t11_add_comment_allowed_on_in_progress_and_closed_issue; tests/test_comments.py::test_t11_add_comment_success_trims_text_and_sets_utc; tests/test_comments.py::test_t11_add_comment_text_length_boundaries; tests/test_comments.py::test_t11_add_comment_nonexistent_issue_returns_404
+FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),tests/test_comments.py::test_t11_add_comment_invalid_payload_returns_422_without_saving; tests/test_comments.py::test_t11_validation_422_precedes_404_on_missing_issue; tests/test_comments.py::test_t11_t12_invalid_path_id_returns_422
+FR-06,US-07 / AC-07-03,GET /issues/{id}/comments (Service Layer / Repository),tests/test_comments.py::test_t12_list_comments_sorted_chronologically_and_isolated_per_issue; tests/test_comments.py::test_t12_list_comments_empty_and_nonexistent_issue
+FR-07,US-01 / AC-01-03,Repository / SQLite (File DB),tests/test_issues.py::test_t13_sqlite_persistence_across_restarts; tests/test_comments.py::test_t12_comments_persist_across_app_restarts
+FR-07,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Repository),tests/test_issues.py::test_t14_patch_atomicity_forbidden_fields_and_status_rejection; tests/test_issues.py::test_t14_empty_patch_is_noop_for_open_and_409_for_closed
 FR-08,US-08 / AC-08-01 (Future / LR4),ClassifierService (Stub),test_classifier_suggestion_does_not_mutate_issue_lr4
 
 # Coverage = (7 / 7) * 100% = 100%
