@@ -17,7 +17,8 @@
 
 ## 2. Хід реалізації та тестування активації Skill
 
-На поточному етапі каталоги `app/` і `tests/` порожні: проведено серію з 4 контрольних запитів для перевірки точності тригера `tracker-slice` (2 позитивні й 2 негативні кейси) та отримано плани реалізації перед генерацією коду. Детальний протокол зафіксовано в [docs/ai-log.md](ai-log.md) (Записи 6–9).
+### 2.1. Тестування точності активації Skill `tracker-slice`
+Проведено серію контрольних запитів для перевірки тригера `tracker-slice` (позитивні та негативні кейси). Детальний протокол зафіксовано в [docs/ai-log.md](ai-log.md) (Записи 6–10).
 
 | № у `ai-log.md` | Запит | Очікування Skill | Фактична поведінка | Результат |
 | :--- | :--- | :--- | :--- | :--- |
@@ -25,38 +26,51 @@
 | **Запис 7** | «Реалізуй додавання коментаря до заявки» | Активація `tracker-slice` | Активовано; виявлено відсутність `references/slices.md`, використано `docs/` напряму, перелічено перевірки `AC-07-01`, `AC-07-02`, `404`/`422`, подано план із 5 пунктів | **Пройдено із зауваженням** |
 | **Запис 8** | «Поясни, чим 409 відрізняється від 422» | Не активувати | Не активовано; надано чітке розмежування конфлікту стану (`409`) та невалідного payload (`422`) | **Пройдено** |
 | **Запис 9** | «Як створити віртуальне середовище у Windows?» | Не активувати | Не активовано; надано команди `venv` для PowerShell і CMD | **Пройдено** |
+| **Запис 10** | Реалізація мінімального каркасу застосунку (Крок 1) | Не активувати | Не активовано; реалізовано базовий каркас без бізнес-маршрутів зрізів A–D | **Пройдено** |
+| **Запис 11** | Реалізація Зрізу A (`POST /issues`, `GET /issues`, `GET /issues/{id}`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → мінімальний diff → `pytest` `26 passed`, `ruff` `All checks passed!`) | **Пройдено** |
 
-### Стан планованих зрізів
-* **Зріз B (`PATCH /issues/{id}/status`)**: зафіксовано порядок перевірок `422 → 404 → 409`, матрицю переходів $3 \times 3$, ідемпотентність `X → X` (`200 OK`), заборону повернення з `CLOSED` (`409 Conflict`) та потребу мінімального каркасу (`database.py`, `main.py`), оскільки зріз A ще не розгорнуто.
-* **Коментарі (`POST /issues/{id}/comments`)**: зафіксовано обмеження скоупу (без `GET /issues/{id}/comments`), `trim` тексту (1..1000 символів), валідацію `author_id ∈ {1, 2}`, підтримку коментування `CLOSED`-заявок (`201 Created`) та `404` для неіснуючої заявки.
+### 2.2. Крок 1 — Мінімальний каркас застосунку
+* **База даних (`app/database.py`)**: реалізовано `get_connection(db_path)` із `sqlite3.Row` та обов'язковим `PRAGMA foreign_keys = ON;` на кожному з'єднанні; `init_db(db_path)` створює таблиці `users`, `issues`, `comments` згідно з ER-моделлю ЛР1 (`CHECK`-обмеження для `status` і `priority`, зовнішні ключі) та ідемпотентно додає користувачів `(1, "Agent A")` і `(2, "Agent B")` через `INSERT OR IGNORE`.
+* **Точка входу (`app/main.py`)**: реалізовано фабрику `create_app(db_path: str = "data/app.db")` з викликом `init_db(db_path)`, підключенням роутера та маршрутом `GET /health` (`200 OK`, `{"status": "ok"}`); створено екземпляр `app = create_app()` для `uvicorn`.
+* **Базові модулі**: створено `app/__init__.py`, `app/schemas.py`, `app/services.py`, `app/routes.py` (`APIRouter`) без зайвих абстракцій і без бізнес-маршрутів зрізів A–D.
+* **Перевірки Кроку 1**:
+  * `.\.venv\Scripts\ruff.exe check app` (та `--select E4,E7,E9,F,I`) — `All checks passed!`.
+  * Smoke-перевірка через FastAPI `TestClient` на тимчасовій БД (`tempfile.TemporaryDirectory`) та на `app`: підтверджено `GET /health` → `200 OK`, `PRAGMA foreign_keys == 1`, наявність таблиць `users`, `issues`, `comments`, спрацювання `sqlite3.IntegrityError` при невалідному `assignee_id` та ідемпотентність повторного `init_db` без дублювання користувачів і втрати рядків у `issues`.
+
+### 2.3. Реалізація Зрізу A — Створення й читання заявок
+* **Схеми (`app/schemas.py`)**: `IssueStatus`, `IssuePriority`, `IssueCreate` (`extra="forbid"`, `strip_whitespace=True` і довжина `3..120` для `title`, `description` `0..2000` із дефолтом `""`, `priority="medium"`, `assignee_id` лише `1 | 2 | None` із відхиленням `bool`) та `IssueRead`.
+* **БД і сервіс (`app/database.py`, `app/services.py`)**: параметризовані функції `insert_issue`, `list_issues` (`ORDER BY created_at ASC, id ASC`), `get_issue_by_id`; у сервісі — `IssueNotFoundError`, `create_issue` (`status="OPEN"`, UTC `YYYY-MM-DDTHH:MM:SSZ`), `get_issues` і `get_issue`.
+* **Маршрути (`app/routes.py`)**: `POST /issues` (`201 Created`), `GET /issues` (`200 OK`, без фільтрів зрізу D), `GET /issues/{id}` (`id > 0` → `200 OK` або `404 Not Found`).
+* **Тести (`tests/conftest.py`, `tests/test_issues.py`)**: фікстура `TestClient` на `tmp_path / "test.db"` і тести для `T01, T02, T03, T13` (`AC-01-01..03`, `AC-03-01..02`), включно з персистентністю між перезапусками `create_app`.
+* **Перевірки Зрізу A**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `26 passed` (`app.db` не змінювався).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
 
 ---
 
-## 3. Рев'ю планів та майбутнього diff
+## 3. Рев'ю планів та diff (Крок 1 і Зріз A)
 
-Оскільки код у `app/` і `tests/` ще не внесено (агент коректно зупинився на етапі затвердження плану), проведено рев'ю запропонованих планів:
-
-1. **Дотримання контракту та ізоляції**: в обох планах збережено `extra="forbid"`, параметризовані запити / ORM без бізнес-логіки у маршрутах, використання `tmp_path` для тестів SQLite та обов'язкову перевірку через `pytest` і `ruff`.
-2. **Виявлена неузгодженість структури модулів**:
-   * У плані Зрізу B (Запис 6) агент використав пласкі шляхи зі `SKILL.md`: `app/database.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`, `app/main.py`.
-   * У плані коментарів (Запис 7) через відсутність `references/slices.md` агент запропонував вкладену структуру (`app/db/models.py`, `app/db/repository.py`, `app/api/schemas.py`, `app/services/issue_service.py`, `app/api/routes.py`).
-   * **Рішення**: перед генерацією коду необхідно зафіксувати єдину структуру файлів, щоб уникнути конфлікту імпортів між зрізами.
+1. **Дотримання контракту та ізоляції**: у Кроці 1 та Зрізі A збережено межі скоупу (зрізи B, C, D і `GET /users` не зачіпалися), параметризовані SQL-запити без бізнес-логіки в маршрутах, `PRAGMA foreign_keys = ON`, `extra="forbid"` та відхилення `bool` для `assignee_id`, а також ізоляцію тестів у `tmp_path`.
+2. **Узгодження структури модулів**:
+   * Під час первинного планування виявлено розбіжність між пласкими шляхами зі `SKILL.md` (Запис 6) та вкладеною структурою `app/db/...`, `app/api/...` (Запис 7).
+   * У Кроці 1 зафіксовано єдину пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`), яку без конфліктів використано при реалізації Зрізу A.
 
 ---
 
 ## 4. Зміни Skill `tracker-slice` (`v0 → v1`)
 
-За результатами тестування версії `v0` визначено конкретні доопрацювання для `v1`:
+За результатами тестування `v0` та виконання Кроку 1:
 
-1. **Створити `references/slices.md`**: зараз у `SKILL.md` (крок 2 процедури) є посилання на `references/slices.md`, але сам файл у `.agents/skills/tracker-slice/` відсутній. Потрібно додати довідник зрізів `A–D` із точним переліком розділів `docs/` та дозволених файлів для кожного зрізу.
-2. **Жорстко закріпити дерево файлів `app/`**: явно вказати в `SKILL.md` / `references/slices.md` єдині шляхи (`app/main.py`, `app/routes.py`, `app/schemas.py`, `app/services.py`, `app/database.py`), щоб агент не перемикався між пласкою та вкладеною архітектурою.
-3. **Уточнити поведінку при порожній теці `app/`**: додати правило, що за відсутності базового каркасу (Зрізу A) агент пропонує або спочатку розгорнути Зріз A, або додати мінімальний спільний каркас без дублювання `main.py` / `database.py` у наступних зрізах.
+1. **Виконано — додано `references/slices.md`**: довідник перенесено всередину теки скіла ([.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md)), де зафіксовано зрізи `A–D` і єдину пласку структуру файлів `app/`.
+2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md) та додати явне правило щодо поведінки при порожньому каркасі `app/`.
 
 ---
 
 ## 5. Пов'язані артефакти
 
-* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–9 для ЛР-02)
-* [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md) — Специфікація Skill `tracker-slice` (v0)
+* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–11 для ЛР-02)
+* [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md) — Специфікація Skill `tracker-slice`
+* [.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md) — Довідник зрізів `A–D`
+* [tests/test_issues.py](../tests/test_issues.py) — Автотести Зрізу A (`T01, T02, T03, T13`)
 * [docs/api-contract.md](api-contract.md) — Контракт REST API (Single Source of Truth)
 * [docs/requirements.md](requirements.md) — Вимоги та критерії приймання

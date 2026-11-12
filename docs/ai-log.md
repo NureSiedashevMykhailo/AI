@@ -221,3 +221,28 @@
   * `ruff check app --select E4,E7,E9,F,I` — `All checks passed!`.
   * Smoke-перевірка через `TestClient` на ізольованій тимчасовій БД (`tempfile.TemporaryDirectory`) та на екземплярі `app`: підтверджено `GET /health` (`200 OK`, `{"status": "ok"}`), `PRAGMA foreign_keys == 1`, наявність таблиць `users`, `issues`, `comments`, спрацювання FK (`IntegrityError`), ідемпотентність `init_db` (рівно 2 користувачі без дублювання та збереження наявних записів у `issues`).
 * **Пов'язаний артефакт / Статус**: `app/__init__.py`, `app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py` — реалізовано; бізнес-маршрути зрізів A–D не зачіпалися.
+
+---
+
+## Запис 11. Реалізація Зрізу A: створення й читання заявок (ЛР-02, Skill `tracker-slice`)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode)
+* **Активність Skill**: `tracker-slice` — **активовано** (повний цикл процедури: зріз → читання `docs/` → перевірки → план → підтвердження → мінімальний diff → `pytest` і `ruff`).
+* **Етап**: Реалізація Зрізу A (`POST /issues`, `GET /issues`, `GET /issues/{id}`, без фільтрів зрізу D).
+* **Мета**: Реалізувати створення, список і читання заявок за `docs/api-contract.md` і `docs/requirements.md` із покриттям сценаріїв `T01, T02, T03, T13` на ізольованій БД `tmp_path`.
+* **Переданий контекст**: `docs/api-contract.md` (Розділ 1, 2.3–2.5), `docs/requirements.md` (`US-01`, `US-03`, Розділи 4.1, 7.1–7.3, `NFR-02`), `docs/architecture.md`, `docs/traceability.csv`, `.agents/skills/tracker-slice/references/slices.md`.
+* **Ключовий запит (Prompt)**:
+  > «Використай Skill tracker-slice для реалізації зрізу A (створення та читання заявок: POST /issues, GET /issues, GET /issues/{id}, без фільтрів зрізу D). Суворо дотримуйся правил даних, валідації (trim, довжини, заборона зайвих полів, заборона задавати id/created_at/status при створенні) та кодів відповідей із docs/. Тести для сценаріїв зрізу A (T01, T02, T03, T13) мають працювати через TestClient на ізольованій тимчасовій базі (tmp_path).»
+* **Що реалізовано**:
+  * `app/schemas.py`: `IssueStatus`, `IssuePriority`, `IssueCreate` (`extra="forbid"`, `strip_whitespace=True` і довжина `3..120` для `title`, `description` `0..2000` із дефолтом `""`, `priority="medium"`, `assignee_id` лише `1 | 2 | None` із відхиленням `bool`) та `IssueRead`.
+  * `app/database.py`: параметризовані функції `insert_issue`, `list_issues` (`ORDER BY created_at ASC, id ASC`) та `get_issue_by_id`.
+  * `app/services.py`: `IssueNotFoundError`, `create_issue` (`status="OPEN"`, UTC `YYYY-MM-DDTHH:MM:SSZ`), `get_issues` і `get_issue`.
+  * `app/routes.py`: `POST /issues` (`201 Created`), `GET /issues` (`200 OK`, без фільтрів зрізу D), `GET /issues/{id}` (`id > 0` → `200 OK` або `404 Not Found`).
+  * `tests/conftest.py`, `tests/test_issues.py`: фікстура `TestClient` на `tmp_path / "test.db"` та тести для `T01, T02, T03, T13` (дефолти, `trim`, межі довжин, заборона зайвих/системних полів, `422`/`404`, сортування та персистентність між перезапусками `create_app`).
+* **Спосіб перевірки та ручний аналіз**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `26 passed` (1 попередження `StarletteDeprecationWarning` усередині `fastapi/testclient.py`); `app.db` не змінювався.
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+  * **Ручна перевірка**: підтверджено дотримання процедури `tracker-slice` (план затверджено до внесення змін), розподілу шарів, відсутність виходу за межі скоупу (зрізи B, C, D та `GET /users` не чіпалися).
+* **Пов'язаний артефакт / Commit**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/conftest.py`, `tests/test_issues.py` | Commit: `54b5ed2` (`feat(slice-a): implement issue creation, listing and details`).
