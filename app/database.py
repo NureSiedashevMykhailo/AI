@@ -71,6 +71,22 @@ def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> None:
         conn.close()
 
 
+def list_users(db_path: str | Path) -> list[dict[str, Any]]:
+    """Return all predefined users ordered by id ASC."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT id, name
+            FROM users
+            ORDER BY id ASC
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def insert_issue(
     db_path: str | Path,
     *,

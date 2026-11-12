@@ -14,6 +14,7 @@ from app.schemas import (
     IssueStatus,
     IssueStatusUpdate,
     IssueUpdate,
+    UserRead,
 )
 from app.services import IssueConflictError, IssueNotFoundError
 
@@ -22,6 +23,11 @@ router = APIRouter()
 
 def _get_db_path(request: Request) -> str | Path:
     return request.app.state.db_path
+
+
+@router.get("/users", response_model=list[UserRead], status_code=status.HTTP_200_OK)
+def list_users_endpoint(request: Request) -> list[UserRead]:
+    return services.get_users(_get_db_path(request))
 
 
 @router.post("/issues", response_model=IssueRead, status_code=status.HTTP_201_CREATED)

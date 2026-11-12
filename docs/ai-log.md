@@ -370,3 +370,27 @@
   * Виконано `.\.venv\Scripts\python.exe -m pytest -q` та `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` після фінального редагування документів.
   * **Ручна перевірка**: перевірено, що в `docs/lab-02.md` і `README.md` чесно відображено межі реалізації (`FR-08` поза обсягом; `GET /users` не входив до зрізів `A–D` і відсутній у `app/routes.py`) без домислювання фактів.
 * **Пов'язаний артефакт / Статус**: `docs/experiment-lr2.csv`, `docs/lab-02.md`, `docs/ai-log.md`, `docs/traceability.csv`, `README.md` — підготовлено та перевірено (рішення щодо коміту за оператором).
+
+---
+
+## Запис 17. Виправлення зауважень ЛР-02 (`GET /users`, ізоляція БД через `lifespan`, оновлення Skill і звітності)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Hydrogen (High)
+* **Активність Skill**: `tracker-slice` — **не активовано** на етапі оновлення звітної документації та редагування самого Skill (відповідно до обмежень тригера `SKILL.md`).
+* **Етап**: Закриття зауважень після рев'ю ЛР-02 (`GET /users`, ізоляція `init_db` у `lifespan`, фіналізація `.agents/skills/tracker-slice/references/slices.md` та звітів).
+* **Мета**: Реалізувати 9-й маршрут контракту `GET /users`, прибрати передчасне створення БД до старту ASGI `lifespan`, замінити шаблонні заглушки у `references/slices.md` реальними ідентифікаторами з `docs/requirements.md` та синхронізувати `docs/lab-02.md`, `README.md` і `docs/traceability.csv`.
+* **Переданий контекст**: `app/database.py`, `app/main.py`, `app/routes.py`, `app/schemas.py`, `app/services.py`, `tests/test_users.py`, `docs/requirements.md`, `docs/api-contract.md`, `docs/lab-02.md`, `docs/traceability.csv`, `README.md`, `.agents/skills/tracker-slice/references/slices.md`.
+* **Ключовий запит (Prompt)**:
+  > «Онови документацію та Skill під фінальні виправлення: 1) .agents/skills/tracker-slice/references/slices.md — замінити <US-xx, AC-xx-yy> на реальні ID з docs/requirements.md та додати GET /users до зрізу A; 2) docs/lab-02.md — оновити кількість тестів pytest і замінити розділ контрольних питань точними відповідями на 8 питань методички ЛР2; 3) README.md та docs/traceability.csv — додати GET /users і прив'язати тести; 4) docs/ai-log.md — додати запис про виправлення.»
+* **Що реалізовано (код + документація)**:
+  * Код і тести (`GET /users` та `lifespan`): додано `UserRead` (`app/schemas.py`), `list_users` (`app/database.py`), `get_users` (`app/services.py`), маршрут `GET /users` (`app/routes.py`), перенесено `init_db` у `asynccontextmanager` `lifespan` всередині `create_app` (`app/main.py`) і додано 3 тести у `tests/test_users.py` (`test_list_users_returns_predefined_users_ordered_by_id`, `test_list_users_orders_by_id_asc_regardless_of_insertion_order`, `test_create_app_does_not_initialize_db_before_lifespan`).
+  * `.agents/skills/tracker-slice/references/slices.md`: замінено всі шаблонні заглушки `<US-xx, AC-xx-yy>` на конкретні `US-01..US-07` і `AC-xx-yy` з `docs/requirements.md`, додано `GET /users` та `test_users.py` до Зрізу A.
+  * `docs/lab-02.md`: оновлено фактичну кількість тестів (`112 passed`), зафіксовано реалізацію всіх 9 маршрутів контракту ЛР1 та ізоляції через `lifespan`, повністю замінено Розділ 6 точними відповідями на 8 контрольних питань методички ЛР2.
+  * `README.md` та `docs/traceability.csv`: видалено згадку про відсутність `GET /users`, додано `GET /users` до прикладів API (усі 9 маршрутів ЛР1) та прив'язано 3 тести з `tests/test_users.py` до `FR-05` і `FR-07`.
+* **Спосіб перевірки та ручний аналіз**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` → `112 passed, 1 warning` (робочий `data/app.db` не зачіпається).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` → `All checks passed!`.
+  * Ручна перевірка відсутності шаблонних заглушок `<US-xx, AC-xx-yy>` у `.agents/skills/tracker-slice/references/slices.md` та точної відповідності назв тестів у `docs/traceability.csv`.
+* **Пов'язаний артефакт / Статус**: `.agents/skills/tracker-slice/references/slices.md`, `docs/lab-02.md`, `README.md`, `docs/traceability.csv`, `docs/ai-log.md` — оновлено та перевірено (рішення щодо коміту за оператором).

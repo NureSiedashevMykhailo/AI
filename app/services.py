@@ -13,6 +13,7 @@ from app.schemas import (
     IssueStatus,
     IssueStatusUpdate,
     IssueUpdate,
+    UserRead,
 )
 
 ALLOWED_STATUS_TRANSITIONS: dict[IssueStatus, frozenset[IssueStatus]] = {
@@ -45,6 +46,12 @@ class IssueConflictError(Exception):
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_users(db_path: str | Path) -> list[UserRead]:
+    """Return predefined users ordered by id ASC."""
+    rows = database.list_users(db_path)
+    return [UserRead(**row) for row in rows]
 
 
 def create_issue(db_path: str | Path, payload: IssueCreate) -> IssueRead:
