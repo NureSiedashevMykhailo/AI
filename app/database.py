@@ -201,3 +201,54 @@ def update_issue_status(
         return _fetch_issue_row(conn, issue_id)
     finally:
         conn.close()
+
+
+def insert_comment(
+    db_path: str | Path,
+    *,
+    issue_id: int,
+    author_id: int,
+    text: str,
+    created_at: str,
+) -> dict[str, Any]:
+    """Insert a new comment row and return the persisted record."""
+    conn = get_connection(db_path)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO comments (issue_id, author_id, text, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (issue_id, author_id, text, created_at),
+            )
+            comment_id = cursor.lastrowid
+        row = conn.execute(
+            """
+            SELECT id, issue_id, author_id, text, created_at
+            FROM comments
+            WHERE id = ?
+            """,
+            (comment_id,),
+        ).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def list_comments(db_path: str | Path, issue_id: int) -> list[dict[str, Any]]:
+    """Return comments for an issue ordered by created_at ASC, id ASC."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT id, issue_id, author_id, text, created_at
+            FROM comments
+            WHERE issue_id = ?
+            ORDER BY created_at ASC, id ASC
+            """,
+            (issue_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()

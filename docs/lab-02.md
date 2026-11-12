@@ -29,6 +29,7 @@
 | **Запис 10** | Реалізація мінімального каркасу застосунку (Крок 1) | Не активувати | Не активовано; реалізовано базовий каркас без бізнес-маршрутів зрізів A–D | **Пройдено** |
 | **Запис 11** | Реалізація Зрізу A (`POST /issues`, `GET /issues`, `GET /issues/{id}`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → мінімальний diff → `pytest` `26 passed`, `ruff` `All checks passed!`) | **Пройдено** |
 | **Запис 12** | Реалізація Зрізу B (`PATCH /issues/{id}`, `PATCH /issues/{id}/status`) | Активація `tracker-slice` | Активовано; виявлено й узгоджено суперечність `{}` із `docs/`, виконано план → `pytest` `66 passed`, `ruff` `All checks passed!` | **Пройдено** |
+| **Запис 13** | Реалізація Зрізу C (`POST/GET /issues/{id}/comments`) | Активація `tracker-slice` | Активовано; повний цикл (план → підтвердження → diff → `pytest` `97 passed`, `ruff` `All checks passed!`) | **Пройдено** |
 
 ### 2.2. Крок 1 — Мінімальний каркас застосунку
 * **База даних (`app/database.py`)**: реалізовано `get_connection(db_path)` із `sqlite3.Row` та обов'язковим `PRAGMA foreign_keys = ON;` на кожному з'єднанні; `init_db(db_path)` створює таблиці `users`, `issues`, `comments` згідно з ER-моделлю ЛР1 (`CHECK`-обмеження для `status` і `priority`, зовнішні ключі) та ідемпотентно додає користувачів `(1, "Agent A")` і `(2, "Agent B")` через `INSERT OR IGNORE`.
@@ -56,13 +57,22 @@
   * `.\.venv\Scripts\python.exe -m pytest -q` — `66 passed`.
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
 
+### 2.5. Реалізація Зрізу C — Додавання та перегляд коментарів
+* **Схеми (`app/schemas.py`)**: узагальнено `_reject_bool_user_id`, додано `TrimmedCommentText` (`strip_whitespace=True`, `1..1000`), `AuthorId` (`1 | 2`, без `bool` і `null`), `CommentCreate` (`extra="forbid"`) та `CommentRead`.
+* **БД і сервіс (`app/database.py`, `app/services.py`)**: додано параметризовані `insert_comment` і `list_comments` (`ORDER BY created_at ASC, id ASC`); у сервісі винесено `_utc_now_iso`, реалізовано `add_comment` і `get_comments` (`IssueNotFoundError → 404`, без блокування `CLOSED`).
+* **Маршрути (`app/routes.py`)**: `POST /issues/{id}/comments` (`201 Created`) і `GET /issues/{id}/comments` (`200 OK`) з валідацією `id > 0` (`422`) та мапінгом `404`.
+* **Тести (`tests/test_comments.py`)**: +31 тест-кейс для сценаріїв `T11` і `T12` на ізольованій БД (`tmp_path`), включно з `trim`, межами довжини, пріоритетом `422 → 404`, коментуванням і читанням `CLOSED`, сортуванням та персистентністю.
+* **Перевірки Зрізу C**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `97 passed, 1 warning in 4.25s` (`data/app.db` не змінювався).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+
 ---
 
-## 3. Рев'ю планів та diff (Крок 1, Зрізи A та B)
+## 3. Рев'ю планів та diff (Крок 1, Зрізи A, B і C)
 
 1. **Захист специфікації `docs/` як Single Source of Truth**: під час планування Зрізу B агент виявив суперечність між формулюванням у промпті («заборона порожнього PATCH») і контрактом у `docs/requirements.md` та `docs/api-contract.md` (`{}` → `200 OK` як `no-op` для відкритої заявки, `409 Conflict` для `CLOSED`). Роботу було зупинено до підтвердження оператора, що запобігло поломці контракту.
-2. **Дотримання меж і безпеки**: у Кроці 1, Зрізі A та Зрізі B збережено скоуп (зрізи C, D і `GET /users` не чіпалися), параметризовані запити з allowlist колонок, `PRAGMA foreign_keys = ON`, `extra="forbid"`, відхилення `bool` для `assignee_id` та ізоляцію тестів у `tmp_path`.
-3. **Узгодження структури модулів**: зафіксовану в Кроці 1 пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`) без конфліктів використано у Зрізах A та B.
+2. **Дотримання меж, перевикористання та безпеки**: у Кроці 1 та Зрізах A–C збережено скоуп (Зріз D і `GET /users` не чіпалися), параметризовані запити з allowlist колонок, `PRAGMA foreign_keys = ON`, `extra="forbid"`, перевикористання спільних хелперів (`_reject_bool_user_id`, `_utc_now_iso`) без дублювання логіки та ізоляцію тестів у `tmp_path`.
+3. **Узгодження структури модулів**: зафіксовану в Кроці 1 пласку структуру (`app/database.py`, `app/main.py`, `app/schemas.py`, `app/services.py`, `app/routes.py`) без конфліктів використано у Зрізах A, B і C.
 
 ---
 
@@ -71,15 +81,16 @@
 За результатами тестування `v0` та виконання Кроку 1:
 
 1. **Виконано — додано `references/slices.md`**: довідник перенесено всередину теки скіла ([.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md)), де зафіксовано зрізи `A–D` і єдину пласку структуру файлів `app/`.
-2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md), додати `database.py` до переліку дозволених файлів Зрізу B (оскільки `UPDATE`-функції не існували на старті зрізу) та уточнити поведінку при порожньому каркасі `app/`.
+2. **Залишилося уточнити в `v1`**: замінити шаблонні плейсхолдери `<US-xx, AC-xx-yy>` у `references/slices.md` на фактичні ідентифікатори з [docs/requirements.md](requirements.md), додати `database.py` до переліку дозволених файлів Зрізів B і C (оскільки функції `UPDATE`/`INSERT`/`SELECT` для них додавалися в `app/database.py`) та уточнити поведінку при порожньому каркасі `app/`.
 
 ---
 
 ## 5. Пов'язані артефакти
 
-* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–12 для ЛР-02)
+* [docs/ai-log.md](ai-log.md) — Журнал взаємодії з AI-асистентом (Записи 6–13 для ЛР-02)
 * [.agents/skills/tracker-slice/SKILL.md](../.agents/skills/tracker-slice/SKILL.md) — Специфікація Skill `tracker-slice`
 * [.agents/skills/tracker-slice/references/slices.md](../.agents/skills/tracker-slice/references/slices.md) — Довідник зрізів `A–D`
 * [tests/test_issues.py](../tests/test_issues.py) — Автотести Зрізів A і B (`T01–T03, T07–T10, T13, T14`)
+* [tests/test_comments.py](../tests/test_comments.py) — Автотести Зрізу C (`T11, T12`)
 * [docs/api-contract.md](api-contract.md) — Контракт REST API (Single Source of Truth)
 * [docs/requirements.md](requirements.md) — Вимоги та критерії приймання

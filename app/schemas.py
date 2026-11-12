@@ -20,10 +20,15 @@ TrimmedTitle = Annotated[
     StringConstraints(strip_whitespace=True, min_length=3, max_length=120),
 ]
 
+TrimmedCommentText = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=1000),
+]
 
-def _reject_bool_assignee(value: object) -> object:
+
+def _reject_bool_user_id(value: object) -> object:
     if isinstance(value, bool):
-        raise ValueError("assignee_id must be 1, 2, or null")
+        raise ValueError("User ID must be one of the predefined users: 1 or 2")
     return value
 
 
@@ -33,10 +38,22 @@ def _validate_allowed_assignee(value: int | None) -> int | None:
     return value
 
 
+def _validate_allowed_author(value: int) -> int:
+    if value not in ALLOWED_USER_IDS:
+        raise ValueError("author_id must be one of the predefined users: 1 or 2")
+    return value
+
+
 AssigneeId = Annotated[
     int | None,
-    BeforeValidator(_reject_bool_assignee),
+    BeforeValidator(_reject_bool_user_id),
     AfterValidator(_validate_allowed_assignee),
+]
+
+AuthorId = Annotated[
+    int,
+    BeforeValidator(_reject_bool_user_id),
+    AfterValidator(_validate_allowed_author),
 ]
 
 
@@ -92,4 +109,21 @@ class IssueRead(BaseModel):
     status: IssueStatus
     priority: IssuePriority
     assignee_id: int | None
+    created_at: str
+
+
+class CommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    author_id: AuthorId
+    text: TrimmedCommentText
+
+
+class CommentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    issue_id: int
+    author_id: int
+    text: str
     created_at: str

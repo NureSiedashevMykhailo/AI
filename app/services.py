@@ -5,6 +5,8 @@ from pathlib import Path
 
 from app import database
 from app.schemas import (
+    CommentCreate,
+    CommentRead,
     IssueCreate,
     IssueRead,
     IssueStatus,
@@ -40,9 +42,12 @@ class IssueConflictError(Exception):
     """Raised when an operation violates issue lifecycle or state rules."""
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def create_issue(db_path: str | Path, payload: IssueCreate) -> IssueRead:
     """Create a new issue with initial OPEN status and UTC timestamp."""
-    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     row = database.insert_issue(
         db_path,
         title=payload.title,
@@ -50,7 +55,7 @@ def create_issue(db_path: str | Path, payload: IssueCreate) -> IssueRead:
         status=IssueStatus.OPEN.value,
         priority=payload.priority.value,
         assignee_id=payload.assignee_id,
-        created_at=created_at,
+        created_at=_utc_now_iso(),
     )
     return IssueRead(**row)
 
@@ -115,3 +120,31 @@ def update_issue_status(
     if updated_row is None:
         raise IssueNotFoundError(issue_id)
     return IssueRead(**updated_row)
+
+
+def add_comment(
+    db_path: str | Path,
+    issue_id: int,
+    payload: CommentCreate,
+) -> CommentRead:
+    """Add a comment to an existing issue (including CLOSED issues)."""
+    if database.get_issue_by_id(db_path, issue_id) is None:
+        raise IssueNotFoundError(issue_id)
+
+    row = database.insert_comment(
+        db_path,
+        issue_id=issue_id,
+        author_id=payload.author_id,
+        text=payload.text,
+        created_at=_utc_now_iso(),
+    )
+    return CommentRead(**row)
+
+
+def get_comments(db_path: str | Path, issue_id: int) -> list[CommentRead]:
+    """Return comments for an existing issue ordered by created_at ASC, id ASC."""
+    if database.get_issue_by_id(db_path, issue_id) is None:
+        raise IssueNotFoundError(issue_id)
+
+    rows = database.list_comments(db_path, issue_id)
+    return [CommentRead(**row) for row in rows]

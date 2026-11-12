@@ -5,7 +5,14 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi import Path as FastAPIPath
 
 from app import services
-from app.schemas import IssueCreate, IssueRead, IssueStatusUpdate, IssueUpdate
+from app.schemas import (
+    CommentCreate,
+    CommentRead,
+    IssueCreate,
+    IssueRead,
+    IssueStatusUpdate,
+    IssueUpdate,
+)
 from app.services import IssueConflictError, IssueNotFoundError
 
 router = APIRouter()
@@ -79,5 +86,42 @@ def update_issue_status_endpoint(
     except IssueConflictError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/issues/{id}/comments",
+    response_model=CommentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_comment_endpoint(
+    id: Annotated[int, FastAPIPath(gt=0)],
+    payload: CommentCreate,
+    request: Request,
+) -> CommentRead:
+    try:
+        return services.add_comment(_get_db_path(request), id, payload)
+    except IssueNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/issues/{id}/comments",
+    response_model=list[CommentRead],
+    status_code=status.HTTP_200_OK,
+)
+def list_comments_endpoint(
+    id: Annotated[int, FastAPIPath(gt=0)],
+    request: Request,
+) -> list[CommentRead]:
+    try:
+        return services.get_comments(_get_db_path(request), id)
+    except IssueNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc

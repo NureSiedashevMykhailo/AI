@@ -274,3 +274,28 @@
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
   * **Ручна перевірка**: підтверджено дотримання `tracker-slice` (захист специфікації `docs/` від суперечливої вимоги у промпті), відсутність зайвого рефакторингу та збереження меж скоупу (зрізи C, D та `GET /users` не чіпалися).
 * **Пов'язаний артефакт / Статус**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_issues.py` — реалізовано та перевірено (рішення щодо коміту за оператором).
+
+---
+
+## Запис 13. Реалізація Зрізу C: додавання та перегляд коментарів (ЛР-02, Skill `tracker-slice`)
+
+* **Дата**: 12.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode)
+* **Активність Skill**: `tracker-slice` — **активовано** (повний цикл: зріз C → читання `docs/` → перевірки → план → підтвердження → diff → `pytest` і `ruff`).
+* **Етап**: Реалізація Зрізу C (`POST /issues/{id}/comments`, `GET /issues/{id}/comments`).
+* **Мета**: Реалізувати додавання та хронологічний перегляд коментарів (включно для `CLOSED`-заявок) за `docs/api-contract.md` і `docs/requirements.md` із покриттям сценаріїв `T11, T12`.
+* **Переданий контекст**: `docs/api-contract.md` (Розділ 1, 2.8–2.9), `docs/requirements.md` (`FR-06`, `FR-07`, `NFR-02`, `US-07 / AC-07-01..03`, `AC-01-03`, Розділи 4.1, 5.2, 7), `.agents/skills/tracker-slice/references/slices.md`.
+* **Ключовий запит (Prompt)**:
+  > «Використай Skill tracker-slice для реалізації зрізу C (додавання та перегляд коментарів: POST /issues/{id}/comments та GET /issues/{id}/comments). Суворо дотримуйся правил із docs/: перевірка існування заявки (404), валідація автора та тексту коментаря (trim, довжина, заборона порожніх пробілів та зайвих полів — 422), дозвіл коментувати заявки у статусі CLOSED, коректне сортування списку коментарів. Додай тести для сценаріїв T11 та T12 на ізольованій БД (tmp_path).»
+* **Що реалізовано**:
+  * `app/schemas.py`: узагальнено `_reject_bool_user_id`, додано `TrimmedCommentText` (`strip_whitespace=True`, `1..1000`), `_validate_allowed_author`, `AuthorId` (`1 | 2`, без `bool` і `null`), `CommentCreate` (`extra="forbid"`) та `CommentRead`.
+  * `app/database.py`: параметризовані `insert_comment` і `list_comments` із сортуванням `ORDER BY created_at ASC, id ASC`.
+  * `app/services.py`: винесено `_utc_now_iso`, реалізовано `add_comment` і `get_comments` із перевіркою існування заявки (`IssueNotFoundError → 404`) без блокування `CLOSED`.
+  * `app/routes.py`: `POST /issues/{id}/comments` (`201 Created`) і `GET /issues/{id}/comments` (`200 OK`) із валідацією `id > 0` (`422`) та мапінгом `404`.
+  * `tests/test_comments.py`: +31 тест-кейс для `T11` і `T12` на `tmp_path` (`trim`, межі `1..1000`, заборона пробільних рядків/`null`/`bool`/зайвих полів, пріоритет `422 → 404`, коментування й читання `CLOSED`, `[]` за відсутності коментарів, сортування, ізоляція між заявками, персистентність після перезапуску `create_app`).
+* **Спосіб перевірки та ручний аналіз**:
+  * `.\.venv\Scripts\python.exe -m pytest -q` — `97 passed, 1 warning in 4.25s` (`data/app.db` не змінювався).
+  * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` — `All checks passed!`.
+  * **Ручна перевірка**: підтверджено перевикористання спільних хелперів (`_reject_bool_user_id`, `_utc_now_iso`) без дублювання логіки, дотримання `422 → 404` та збереження меж скоупу (Зріз D не чіпався).
+* **Пов'язаний артефакт / Статус**: `app/schemas.py`, `app/database.py`, `app/services.py`, `app/routes.py`, `tests/test_comments.py` — реалізовано та перевірено (рішення щодо коміту за оператором).
