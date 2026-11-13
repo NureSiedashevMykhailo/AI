@@ -149,14 +149,17 @@ def _fetch_issue_row(
     conn: sqlite3.Connection,
     issue_id: int,
 ) -> dict[str, Any] | None:
-    row = conn.execute(
-        """
-        SELECT id, title, description, status, priority, assignee_id, created_at
-        FROM issues
-        WHERE id = ?
-        """,
-        (issue_id,),
-    ).fetchone()
+    try:
+        row = conn.execute(
+            """
+            SELECT id, title, description, status, priority, assignee_id, created_at
+            FROM issues
+            WHERE id = ?
+            """,
+            (issue_id,),
+        ).fetchone()
+    except OverflowError:
+        return None
     return dict(row) if row is not None else None
 
 
@@ -187,13 +190,16 @@ def update_issue(
 
     conn = get_connection(db_path)
     try:
-        with conn:
-            cursor = conn.execute(
-                f"UPDATE issues SET {assignments} WHERE id = ?",
-                params,
-            )
-            if cursor.rowcount == 0:
-                return None
+        try:
+            with conn:
+                cursor = conn.execute(
+                    f"UPDATE issues SET {assignments} WHERE id = ?",
+                    params,
+                )
+                if cursor.rowcount == 0:
+                    return None
+        except OverflowError:
+            return None
         return _fetch_issue_row(conn, issue_id)
     finally:
         conn.close()
@@ -207,13 +213,16 @@ def update_issue_status(
     """Atomically update the status of an existing issue and return it."""
     conn = get_connection(db_path)
     try:
-        with conn:
-            cursor = conn.execute(
-                "UPDATE issues SET status = ? WHERE id = ?",
-                (new_status, issue_id),
-            )
-            if cursor.rowcount == 0:
-                return None
+        try:
+            with conn:
+                cursor = conn.execute(
+                    "UPDATE issues SET status = ? WHERE id = ?",
+                    (new_status, issue_id),
+                )
+                if cursor.rowcount == 0:
+                    return None
+        except OverflowError:
+            return None
         return _fetch_issue_row(conn, issue_id)
     finally:
         conn.close()
@@ -256,15 +265,18 @@ def list_comments(db_path: str | Path, issue_id: int) -> list[dict[str, Any]]:
     """Return comments for an issue ordered by created_at ASC, id ASC."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute(
-            """
-            SELECT id, issue_id, author_id, text, created_at
-            FROM comments
-            WHERE issue_id = ?
-            ORDER BY created_at ASC, id ASC
-            """,
-            (issue_id,),
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                """
+                SELECT id, issue_id, author_id, text, created_at
+                FROM comments
+                WHERE issue_id = ?
+                ORDER BY created_at ASC, id ASC
+                """,
+                (issue_id,),
+            ).fetchall()
+        except OverflowError:
+            return []
         return [dict(row) for row in rows]
     finally:
         conn.close()

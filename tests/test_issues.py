@@ -4,6 +4,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.database import (
+    get_issue_by_id,
+    init_db,
+    update_issue,
+    update_issue_status,
+)
 from app.main import create_app
 from app.services import matches_priority, matches_status
 
@@ -69,7 +75,10 @@ def test_t01_create_issue_with_optional_fields_and_boundaries(
         {"title": "Valid title", "priority": None},
         {"title": "Valid title", "assignee_id": 99},
         {"title": "Valid title", "assignee_id": 0},
+        {"title": "Valid title", "assignee_id": "1"},
+        {"title": "Valid title", "assignee_id": "2"},
         {"title": "Valid title", "assignee_id": True},
+        {"title": "Valid title", "assignee_id": False},
         {"title": "Valid title", "id": 10},
         {"title": "Valid title", "created_at": "2026-11-01T12:00:00Z"},
         {"title": "Valid title", "status": "OPEN"},
@@ -131,6 +140,37 @@ def test_t03_get_nonexistent_issue_returns_404(client: TestClient) -> None:
 
     assert response.status_code == 404
     assert isinstance(response.json().get("detail"), str)
+
+
+def test_sqlite_int64_overflow_issue_id_returns_404_and_db_none(
+    client: TestClient,
+    db_path: Path,
+) -> None:
+    overflow_id = 9_223_372_036_854_775_808
+
+    get_resp = client.get(f"/issues/{overflow_id}")
+    assert get_resp.status_code == 404
+    assert isinstance(get_resp.json().get("detail"), str)
+
+    patch_resp = client.patch(f"/issues/{overflow_id}", json={"priority": "high"})
+    assert patch_resp.status_code == 404
+    assert isinstance(patch_resp.json().get("detail"), str)
+
+    noop_patch_resp = client.patch(f"/issues/{overflow_id}", json={})
+    assert noop_patch_resp.status_code == 404
+    assert isinstance(noop_patch_resp.json().get("detail"), str)
+
+    status_resp = client.patch(
+        f"/issues/{overflow_id}/status",
+        json={"status": "IN_PROGRESS"},
+    )
+    assert status_resp.status_code == 404
+    assert isinstance(status_resp.json().get("detail"), str)
+
+    init_db(db_path)
+    assert get_issue_by_id(db_path, overflow_id) is None
+    assert update_issue(db_path, overflow_id, {"priority": "high"}) is None
+    assert update_issue_status(db_path, overflow_id, "IN_PROGRESS") is None
 
 
 def test_t13_sqlite_persistence_across_restarts(db_path: Path) -> None:
@@ -314,7 +354,10 @@ def test_t09_patch_closed_issue_returns_409_and_allows_get(
         {"priority": "urgent"},
         {"assignee_id": 99},
         {"assignee_id": 0},
+        {"assignee_id": "1"},
+        {"assignee_id": "2"},
         {"assignee_id": True},
+        {"assignee_id": False},
     ],
 )
 def test_t10_patch_issue_validation_returns_422(
@@ -555,3 +598,27 @@ def test_t06_filter_issues_invalid_query_params_returns_422(
     body = response.json()
     assert isinstance(body.get("detail"), list)
     assert len(body["detail"]) >= 1
+
+
+def test_issue_update_openapi_schema_disallows_null_for_non_nullable_fields(
+    client: TestClient,
+) -> None:
+    openapi_resp = client.get("/openapi.json")
+    assert openapi_resp.status_code == 200
+
+    issue_update_schema = openapi_resp.json()["components"]["schemas"]["IssueUpdate"]
+    properties = issue_update_schema["properties"]
+    assert issue_update_schema.get("required", []) == []
+
+    for field_name in ("title", "description", "priority"):
+        field_schema = properties[field_name]
+        assert "anyOf" not in field_schema
+        assert field_schema.get("type") != "null"
+
+    assert properties["title"]["type"] == "string"
+    assert properties["description"]["type"] == "string"
+    assert properties["priority"]["$ref"] == "#/components/schemas/IssuePriority"
+    assert properties["assignee_id"]["anyOf"] == [
+        {"type": "integer"},
+        {"type": "null"},
+    ]

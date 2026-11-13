@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import get_connection
+from app.database import get_connection, init_db, list_comments
 from app.main import create_app
 
 UTC_ISO_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
@@ -114,6 +114,8 @@ def test_t11_add_comment_nonexistent_issue_returns_404(client: TestClient) -> No
         {"author_id": -1, "text": "Negative author"},
         {"author_id": True, "text": "Bool author"},
         {"author_id": False, "text": "Bool author"},
+        {"author_id": "1", "text": "Numeric string author 1"},
+        {"author_id": "2", "text": "Numeric string author 2"},
         {"author_id": "invalid", "text": "String author"},
         {"author_id": 1, "text": None},
         {"author_id": 1, "text": ""},
@@ -178,6 +180,27 @@ def test_t12_list_comments_empty_and_nonexistent_issue(client: TestClient) -> No
     missing_resp = client.get("/issues/9999/comments")
     assert missing_resp.status_code == 404
     assert isinstance(missing_resp.json().get("detail"), str)
+
+
+def test_sqlite_int64_overflow_comments_endpoints_return_404_and_empty_list(
+    client: TestClient,
+    db_path: Path,
+) -> None:
+    overflow_id = 9_223_372_036_854_775_808
+
+    post_resp = client.post(
+        f"/issues/{overflow_id}/comments",
+        json={"author_id": 1, "text": "Valid comment"},
+    )
+    assert post_resp.status_code == 404
+    assert isinstance(post_resp.json().get("detail"), str)
+
+    get_resp = client.get(f"/issues/{overflow_id}/comments")
+    assert get_resp.status_code == 404
+    assert isinstance(get_resp.json().get("detail"), str)
+
+    init_db(db_path)
+    assert list_comments(db_path, overflow_id) == []
 
 
 def test_t12_list_comments_sorted_chronologically_and_isolated_per_issue(

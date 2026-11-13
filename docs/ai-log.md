@@ -394,4 +394,4 @@
   * `.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` → `All checks passed!`.
   * Ручна перевірка відсутності шаблонних заглушок `<US-xx, AC-xx-yy>` у `.agents/skills/tracker-slice/references/slices.md` та точної відповідності назв тестів у `docs/traceability.csv`.
 * **Пов'язаний артефакт / Статус**: `.agents/skills/tracker-slice/references/slices.md`, `docs/lab-02.md`, `README.md`, `docs/traceability.csv`, `docs/ai-log.md` — оновлено та перевірено (рішення щодо коміту за оператором).
-* **Зовнішня перевірка (ChatGPT)**: [Сесія перевірки ЛР-02 у ChatGPT](https://chatgpt.com/c/6af622e1-90a0-83ed-9d15-edc2df280d1b).
+* **Зовнішня перевірка (ChatGPT)**: [Сесія перевірки ЛР-02 у ChatGPT](https://chatgpt.com/share/6af625a4-3318-83eb-a068-a8392979a45d).

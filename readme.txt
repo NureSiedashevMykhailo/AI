@@ -117,7 +117,7 @@ https://chatgpt.com/share/6aeb09ee-cbf8-83eb-be5f-f7d017623845
 Мітки етапів: lab02-skill-v0 (1e31f86), lab02-ai-draft (d775c03)
 Каталоги артефактів: app/, tests/, .agents/skills/tracker-slice/, docs/
 Зовнішня перевірка (ChatGPT Review):
-https://chatgpt.com/c/6af622e1-90a0-83ed-9d15-edc2df280d1b
+https://chatgpt.com/share/6af625a4-3318-83eb-a068-a8392979a45d
 ========================================================================
 
 1. app/ (database.py, main.py, schemas.py, services.py, routes.py, __init__.py)

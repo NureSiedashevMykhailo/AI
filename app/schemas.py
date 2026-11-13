@@ -6,11 +6,10 @@ from typing import Annotated
 from pydantic import (
     AfterValidator,
     BaseModel,
-    BeforeValidator,
     ConfigDict,
     Field,
+    StrictInt,
     StringConstraints,
-    field_validator,
 )
 
 ALLOWED_USER_IDS = frozenset({1, 2})
@@ -26,12 +25,6 @@ TrimmedCommentText = Annotated[
 ]
 
 
-def _reject_bool_user_id(value: object) -> object:
-    if isinstance(value, bool):
-        raise ValueError("User ID must be one of the predefined users: 1 or 2")
-    return value
-
-
 def _validate_allowed_assignee(value: int | None) -> int | None:
     if value is not None and value not in ALLOWED_USER_IDS:
         raise ValueError("assignee_id must be one of the predefined users: 1 or 2")
@@ -45,14 +38,12 @@ def _validate_allowed_author(value: int) -> int:
 
 
 AssigneeId = Annotated[
-    int | None,
-    BeforeValidator(_reject_bool_user_id),
+    StrictInt | None,
     AfterValidator(_validate_allowed_assignee),
 ]
 
 AuthorId = Annotated[
-    int,
-    BeforeValidator(_reject_bool_user_id),
+    StrictInt,
     AfterValidator(_validate_allowed_author),
 ]
 
@@ -81,17 +72,10 @@ class IssueCreate(BaseModel):
 class IssueUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    title: TrimmedTitle | None = None
-    description: str | None = Field(default=None, max_length=2000)
-    priority: IssuePriority | None = None
+    title: TrimmedTitle = Field(default=None)
+    description: str = Field(default=None, max_length=2000)
+    priority: IssuePriority = Field(default=None)
     assignee_id: AssigneeId = None
-
-    @field_validator("title", "description", "priority", mode="before")
-    @classmethod
-    def reject_null_for_non_nullable_fields(cls, value: object) -> object:
-        if value is None:
-            raise ValueError("Field cannot be null")
-        return value
 
 
 class IssueStatusUpdate(BaseModel):
