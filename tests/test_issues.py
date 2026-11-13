@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from app.database import (
     update_issue_status,
 )
 from app.main import create_app
+from app.schemas import IssuePriority, IssueRead, IssueStatus
 from app.services import matches_priority, matches_status
 
 UTC_ISO_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
@@ -477,21 +479,6 @@ def test_t14_empty_patch_is_noop_for_open_and_409_for_closed(
     assert closed_noop.status_code == 409
     assert isinstance(closed_noop.json().get("detail"), str)
 
-def test_matches_status():
-    issue = {"status": "OPEN"}
-    assert matches_status(issue, None) is True
-    assert matches_status(issue, "OPEN") is True
-    assert matches_status(issue, "CLOSED") is False
-
-
-def test_matches_priority() -> None:
-    issue = {"priority": "high"}
-    assert matches_priority(issue, None) is True
-    assert matches_priority(issue, "high") is True
-    assert matches_priority(issue, "low") is False
-    assert matches_priority(issue, "HIGH") is False
-    assert issue == {"priority": "high"}
-
 
 def test_t04_filter_issues_by_status_priority_and_combined_and(
     client: TestClient,
@@ -622,3 +609,97 @@ def test_issue_update_openapi_schema_disallows_null_for_non_nullable_fields(
         {"type": "integer"},
         {"type": "null"},
     ]
+
+
+def test_matches_priority_none_returns_true() -> None:
+    issue_dict = {
+        "id": 1,
+        "title": "Sample",
+        "description": "",
+        "status": "OPEN",
+        "priority": "low",
+        "assignee_id": None,
+        "created_at": "2026-11-01T12:00:00Z",
+    }
+    issue_model = IssueRead(**issue_dict)
+
+    assert matches_priority(issue_dict, None) is True
+    assert matches_priority(issue_model, None) is True
+
+
+@pytest.mark.parametrize("priority_value", ["high", IssuePriority.high])
+def test_matches_priority_exact_match_returns_true(
+    priority_value: IssuePriority | str,
+) -> None:
+    issue_dict = {
+        "id": 2,
+        "title": "High priority",
+        "description": "",
+        "status": "OPEN",
+        "priority": "high",
+        "assignee_id": 1,
+        "created_at": "2026-11-01T12:00:00Z",
+    }
+    issue_model = IssueRead(**issue_dict)
+
+    assert matches_priority(issue_dict, priority_value) is True
+    assert matches_priority(issue_model, priority_value) is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["low", "high", "MEDIUM", "medium ", IssuePriority.low, IssuePriority.high],
+)
+def test_matches_priority_mismatch_returns_false(value: IssuePriority | str) -> None:
+    issue_dict = {
+        "id": 3,
+        "title": "Medium priority",
+        "description": "",
+        "status": IssueStatus.OPEN.value,
+        "priority": "medium",
+        "assignee_id": None,
+        "created_at": "2026-11-01T12:00:00Z",
+    }
+    issue_model = IssueRead(**issue_dict)
+
+    assert matches_priority(issue_dict, value) is False
+    assert matches_priority(issue_model, value) is False
+
+
+def test_matches_priority_does_not_mutate_input_issue() -> None:
+    issue_dict = {
+        "id": 4,
+        "title": "Immutable check",
+        "description": "Details",
+        "status": "IN_PROGRESS",
+        "priority": "medium",
+        "assignee_id": 2,
+        "created_at": "2026-11-01T12:00:00Z",
+    }
+    dict_snapshot = deepcopy(issue_dict)
+    issue_model = IssueRead(**issue_dict)
+    model_snapshot = issue_model.model_copy(deep=True)
+
+    assert matches_priority(issue_dict, None) is True
+    assert matches_priority(issue_dict, "medium") is True
+    assert matches_priority(issue_dict, "high") is False
+    assert issue_dict == dict_snapshot
+
+    assert matches_priority(issue_model, None) is True
+    assert matches_priority(issue_model, IssuePriority.medium) is True
+    assert matches_priority(issue_model, IssuePriority.high) is False
+    assert issue_model == model_snapshot
+
+def test_matches_status_none_returns_true():
+    assert matches_status({"status": "OPEN"}, None) is True
+
+def test_matches_status_exact_match_returns_true():
+    assert matches_status({"status": "OPEN"}, "OPEN") is True
+
+def test_matches_status_mismatch_returns_false():
+    assert matches_status({"status": "OPEN"}, "CLOSED") is False
+
+def test_matches_status_does_not_mutate_input_issue():
+    issue = {"status": "OPEN", "title": "Bug"}
+    matches_status(issue, "CLOSED")
+    assert issue == {"status": "OPEN", "title": "Bug"}

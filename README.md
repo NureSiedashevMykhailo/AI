@@ -11,20 +11,33 @@
 
 ---
 
-## 2. Налаштування та встановлення (Windows / PowerShell)
+## 2. Налаштування та встановлення (Windows: PowerShell / CMD / Git Bash)
 
-З кореня репозиторію створіть віртуальне середовище `.venv` та встановіть зафіксовані пакети:
+Робоче середовище проєкту — **Windows** (`PowerShell`, `CMD` або `Git Bash`). З кореня репозиторію створіть віртуальне середовище `.venv`, активуйте його в потрібній оболонці (або використовуйте прямий виклик інтерпретатора `.venv\Scripts\python.exe`) та встановіть зафіксовані пакети:
 
 ```powershell
+# 1. Створення .venv (однаково в PowerShell / CMD / Git Bash)
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements-lock.txt
 ```
 
-> Якщо PowerShell блокує запуск скриптів активації, виконайте одноразово:
-> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
->
-> Альтернатива без активації (або для Linux/macOS): у Linux/macOS використовуйте `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-lock.txt`.
+Активація `.venv` залежно від оболонки Windows:
+- **PowerShell**: `.\.venv\Scripts\Activate.ps1`  
+  *(якщо PowerShell блокує запуск скриптів активації, виконайте одноразово: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`)*
+- **CMD (Command Prompt)**: `.venv\Scripts\activate.bat`
+- **Git Bash**: `source .venv/Scripts/activate`
+
+Встановлення залежностей (з активованим `.venv` або прямим викликом `.venv\Scripts\python.exe`):
+
+```powershell
+# PowerShell / CMD (без активації .venv)
+.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
+
+# Git Bash (без активації .venv)
+./.venv/Scripts/python.exe -m pip install -r requirements-lock.txt
+
+# Або в будь-якій оболонці після активації .venv
+python -m pip install -r requirements-lock.txt
+```
 
 ---
 
@@ -33,10 +46,11 @@ python -m pip install -r requirements-lock.txt
 Запустіть локальний ASGI-сервер на `127.0.0.1:8000`:
 
 ```powershell
-.\.venv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8000
+# PowerShell / CMD (прямий виклик без активації .venv; у Git Bash — ./.venv/Scripts/uvicorn.exe)
+.venv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Або при активованому `.venv`:
+Або при активованому `.venv` (`PowerShell` / `CMD` / `Git Bash`):
 
 ```powershell
 uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -51,12 +65,14 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ## 4. Запуск тестів і лінтера
 
 ```powershell
-# Повний прогін автотестів (ізольована тимчасова БД у tmp_path; data/app.db не змінюється)
-.\.venv\Scripts\python.exe -m pytest -q
+# Повний прогін автотестів (PowerShell / CMD; у Git Bash — ./.venv/Scripts/python.exe)
+.venv\Scripts\python.exe -m pytest -q
 
 # Статичний аналіз коду й тестів через ruff
-.\.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I
+.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I
 ```
+
+*(За активованого `.venv` у `PowerShell`, `CMD` або `Git Bash` достатньо викликати `python -m pytest -q` та `python -m ruff check app tests --select E4,E7,E9,F,I`.)*
 
 ---
 

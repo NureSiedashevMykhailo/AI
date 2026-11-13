@@ -1,7 +1,9 @@
 """Business logic services for Mini Issue Tracker."""
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from app import database
 from app.schemas import (
@@ -66,6 +68,23 @@ def create_issue(db_path: str | Path, payload: IssueCreate) -> IssueRead:
         created_at=_utc_now_iso(),
     )
     return IssueRead(**row)
+
+
+def matches_priority(
+    issue: Mapping[str, Any] | IssueRead,
+    value: IssuePriority | str | None,
+) -> bool:
+    """Return True when value is None or strictly matches the issue priority."""
+    if value is None:
+        return True
+    expected = value.value if isinstance(value, IssuePriority) else value
+    issue_priority = issue["priority"] if isinstance(issue, Mapping) else issue.priority
+    actual = (
+        issue_priority.value
+        if isinstance(issue_priority, IssuePriority)
+        else issue_priority
+    )
+    return actual == expected
 
 
 def get_issues(
@@ -167,15 +186,10 @@ def get_comments(db_path: str | Path, issue_id: int) -> list[CommentRead]:
     rows = database.list_comments(db_path, issue_id)
     return [CommentRead(**row) for row in rows]
 
-def matches_status(issue: dict, value: str | None) -> bool:
-    """Return True if value is None or issue status matches value exactly."""
+def matches_status(issue: Mapping[str, Any] | IssueRead, value: IssueStatus | str | None) -> bool:
     if value is None:
         return True
-    return issue["status"] == value
-
-
-def matches_priority(issue: dict, value: str | None) -> bool:
-    """Return True if value is None or issue priority matches value exactly."""
-    if value is None:
-        return True
-    return issue["priority"] == value
+    actual = issue.status if isinstance(issue, IssueRead) else issue["status"]
+    expected = value.value if isinstance(value, IssueStatus) else value
+    actual_str = actual.value if isinstance(actual, IssueStatus) else actual
+    return actual_str == expected

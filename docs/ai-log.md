@@ -395,3 +395,32 @@
   * Ручна перевірка відсутності шаблонних заглушок `<US-xx, AC-xx-yy>` у `.agents/skills/tracker-slice/references/slices.md` та точної відповідності назв тестів у `docs/traceability.csv`.
 * **Пов'язаний артефакт / Статус**: `.agents/skills/tracker-slice/references/slices.md`, `docs/lab-02.md`, `README.md`, `docs/traceability.csv`, `docs/ai-log.md` — оновлено та перевірено (рішення щодо коміту за оператором).
 * **Зовнішня перевірка (ChatGPT)**: [Сесія перевірки ЛР-02 у ChatGPT](https://chatgpt.com/share/6af625a4-3318-83eb-a068-a8392979a45d).
+
+---
+
+## Запис 18. Повторний чистий мікроексперимент, підключення предикатів у `get_issues` та фіналізація документації (ЛР-02)
+
+* **Дата**: 13.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Hydrogen (High)
+* **Активність Skill**:
+  * Для реалізації `matches_priority` (перша гілка повторного експерименту) `tracker-slice` **активовано**;
+  * Для фінального підключення предикатів у `get_issues` та синхронізації звітів (`docs/experiment-lr2.csv`, `docs/lab-02.md`, `docs/traceability.csv`, `README.md`, `docs/ai-log.md`) виконано пряме оновлення за інструкцією оператора.
+* **Етап**: Чистий повторний мікроексперимент (`AI + Skill` першим без прикладу vs `no-AI` вручну), підключення `matches_status` і `matches_priority` у `get_issues`, узгодження інструкцій Windows-термінала.
+* **Мета**:
+  1. Усунути загрозу валідності попереднього заміру: запустити AI-гілку (`matches_priority`) **першою** на кодовій базі без `matches_status`, а `matches_status` реалізувати вручну без AI.
+  2. Підключити обидва предикати за логікою `AND` у `app/services.py::get_issues`.
+  3. Оновити `docs/traceability.csv`, `docs/experiment-lr2.csv`, `docs/lab-02.md`, `README.md` та `docs/ai-log.md` із реальними метриками та інструкціями `.venv` для Windows (`CMD` / `PowerShell` / `Git Bash`).
+* **Переданий контекст**: `app/services.py`, `tests/test_issues.py`, `docs/traceability.csv`, `docs/experiment-lr2.csv`, `docs/lab-02.md`, `README.md`, `docs/ai-log.md`, історія коміту `c0c0883`.
+* **Що реалізовано та зафіксовано**:
+  * **Повторний мікроексперимент (ідентичні 4 перевірки: `value=None`, точний збіг, незбіг, незмінність `issue`; квота — `N/A`)**:
+    * `matches_priority` (`AI + Skill`, виконувалась першою без `matches_status`): **`103 с`** (`77 с` генерація + `26 с` виправлення), **`2` звернення**, **`1` правка** — у першій версії агент продублював блок із 4 тестів у `tests/test_issues.py`, що викликало 4 помилки `ruff F811`, і прибрав дублікат за другим запитом (`4/4` у `pytest` з першої спроби).
+    * `matches_status` (`no-AI`, ручна реалізація): **`73 с`**, **`4/4` тестів** з першого разу, **`0` правок**.
+  * `app/services.py`: у `get_issues` підключено `matches_status(row, status_value) and matches_priority(row, priority_value)`.
+  * `docs/traceability.csv`: оновлено перелік із 8 unit-тестів (`test_matches_status_*` і `test_matches_priority_*`) для `FR-02 / US-02 / AC-02-01`.
+  * `docs/experiment-lr2.csv` і `docs/lab-02.md`: оновлено таблицю й аналіз мікроексперименту, контрольне питання №6, підсумкову кількість тестів (`135 passed`).
+  * `README.md`, `docs/lab-02.md`, `docs/ai-log.md`: узгоджено реальну роботу в **Windows** (`CMD`: `.venv\Scripts\activate.bat`, `PowerShell`: `.\.venv\Scripts\Activate.ps1`, `Git Bash`: `source .venv/Scripts/activate`), разом із прямим викликом `.venv\Scripts\python.exe` (`./.venv/Scripts/python.exe` у `Git Bash`).
+* **Спосіб перевірки та ручний аналіз**:
+  * `.venv\Scripts\python.exe -m pytest -q` → `135 passed, 1 warning in 6.07s` (після фінального редагування — повторний прогін).
+  * `.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` → `All checks passed!`.
+* **Пов'язаний артефакт / Статус**: `app/services.py`, `docs/traceability.csv`, `docs/experiment-lr2.csv`, `docs/lab-02.md`, `README.md`, `docs/ai-log.md` — оновлено та перевірено (коміт не виконувався — рішення за оператором).
