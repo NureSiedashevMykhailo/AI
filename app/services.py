@@ -29,7 +29,6 @@ ALLOWED_STATUS_TRANSITIONS: dict[IssueStatus, frozenset[IssueStatus]] = {
         IssueStatus.CLOSED,
     }),
     IssueStatus.CLOSED: frozenset({
-        IssueStatus.OPEN,
         IssueStatus.CLOSED,
     }),
 }
