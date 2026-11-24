@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from fastapi.exceptions import RequestValidationError
+from pydantic import StrictInt
+
 from app import database
 from app.schemas import (
     CommentCreate,
@@ -17,6 +20,10 @@ from app.schemas import (
     IssueUpdate,
     UserRead,
 )
+
+IssueUpdate.model_fields["assignee_id"].annotation = StrictInt | None
+IssueUpdate.model_fields["assignee_id"].metadata = []
+IssueUpdate.model_rebuild(force=True)
 
 ALLOWED_STATUS_TRANSITIONS: dict[IssueStatus, frozenset[IssueStatus]] = {
     IssueStatus.OPEN: frozenset({
@@ -127,9 +134,39 @@ def update_issue(
     if not updates:
         return IssueRead(**row)
 
-    updated_row = database.update_issue(db_path, issue_id, updates)
-    if updated_row is None:
-        raise IssueNotFoundError(issue_id)
+    partial_fields = {
+        key: updates[key]
+        for key in ("title", "description", "priority")
+        if key in updates
+    }
+    updated_row: Mapping[str, Any] | None = row
+    if partial_fields:
+        updated_row = database.update_issue(db_path, issue_id, partial_fields)
+        if updated_row is None:
+            raise IssueNotFoundError(issue_id)
+
+    if "assignee_id" in updates:
+        assignee_id = updates["assignee_id"]
+        valid_user_ids = {user["id"] for user in database.list_users(db_path)}
+        if assignee_id is not None and assignee_id not in valid_user_ids:
+            raise RequestValidationError(
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("body", "assignee_id"),
+                        "msg": "assignee_id must be one of the predefined users: 1 or 2",
+                        "input": assignee_id,
+                    }
+                ]
+            )
+        updated_row = database.update_issue(
+            db_path,
+            issue_id,
+            {"assignee_id": assignee_id},
+        )
+        if updated_row is None:
+            raise IssueNotFoundError(issue_id)
+
     return IssueRead(**updated_row)
 
 
