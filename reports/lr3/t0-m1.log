@@ -1,0 +1,59 @@
+.................................................................F...... [ 53%]
+...............................................................          [100%]
+================================== FAILURES ===================================
+______________ test_t08_status_transition_matrix_and_idempotency ______________
+
+client = <starlette.testclient.TestClient object at 0x0000017D14808050>
+
+    def test_t08_status_transition_matrix_and_idempotency(client: TestClient) -> None:
+        issue_a = _create_sample_issue(client)["id"]
+        assert client.patch(f"/issues/{issue_a}/status", json={"status": "OPEN"}).status_code == 200
+    
+        in_progress = client.patch(
+            f"/issues/{issue_a}/status",
+            json={"status": "IN_PROGRESS"},
+        )
+        assert in_progress.status_code == 200
+        assert in_progress.json()["status"] == "IN_PROGRESS"
+    
+        idempotent_ip = client.patch(
+            f"/issues/{issue_a}/status",
+            json={"status": "IN_PROGRESS"},
+        )
+        assert idempotent_ip.status_code == 200
+        assert idempotent_ip.json()["status"] == "IN_PROGRESS"
+    
+        back_to_open = client.patch(f"/issues/{issue_a}/status", json={"status": "OPEN"})
+        assert back_to_open.status_code == 409
+        assert isinstance(back_to_open.json().get("detail"), str)
+        assert client.get(f"/issues/{issue_a}").json()["status"] == "IN_PROGRESS"
+    
+        closed = client.patch(f"/issues/{issue_a}/status", json={"status": "CLOSED"})
+        assert closed.status_code == 200
+        assert closed.json()["status"] == "CLOSED"
+    
+        idempotent_closed = client.patch(
+            f"/issues/{issue_a}/status",
+            json={"status": "CLOSED"},
+        )
+        assert idempotent_closed.status_code == 200
+        assert idempotent_closed.json()["status"] == "CLOSED"
+    
+        for forbidden_target in ("OPEN", "IN_PROGRESS"):
+            conflict = client.patch(
+                f"/issues/{issue_a}/status",
+                json={"status": forbidden_target},
+            )
+>           assert conflict.status_code == 409
+E           assert 200 == 409
+E            +  where 200 = <Response [200 OK]>.status_code
+
+tests\test_issues.py:305: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\\University\\4thCourse\\1stTerm\\\u0428\u0443\u041fi\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_issues.py::test_t08_status_transition_matrix_and_idempotency
+1 failed, 134 passed, 1 warning in 5.30s

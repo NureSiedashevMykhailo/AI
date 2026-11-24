@@ -1,0 +1,97 @@
+........................................................................ [ 49%]
+........................F...................................F........... [ 99%]
+.                                                                        [100%]
+================================== FAILURES ===================================
+__ test_t14_patch_atomicity_forbidden_fields_and_status_rejection[payload0] ___
+
+client = <starlette.testclient.TestClient object at 0x0000028D5FCA88D0>
+payload = {'title': 'Valid New Title', 'assignee_id': 99}
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"title": "Valid New Title", "assignee_id": 99},
+            {"priority": "high", "title": "  ab  "},
+            {"title": "Valid New Title", "description": None},
+            {"title": "Valid New Title", "priority": None},
+            {"title": "Valid New Title", "unknown_field": "unexpected"},
+            {"unknown_field": "unexpected"},
+            {"id": 99},
+            {"created_at": "2026-11-01T12:00:00Z"},
+            {"status": "IN_PROGRESS"},
+            {"title": "Valid New Title", "status": "CLOSED"},
+        ],
+    )
+    def test_t14_patch_atomicity_forbidden_fields_and_status_rejection(
+        client: TestClient,
+        payload: dict[str, object],
+    ) -> None:
+        created = _create_sample_issue(client, assignee_id=1)
+        issue_id = created["id"]
+    
+        response = client.patch(f"/issues/{issue_id}", json=payload)
+        assert response.status_code == 422
+        assert isinstance(response.json().get("detail"), list)
+    
+        current = client.get(f"/issues/{issue_id}")
+        assert current.status_code == 200
+>       assert current.json() == created
+E       AssertionError: assert {'id': 1, 'ti...: 'OPEN', ...} == {'id': 1, 'ti...: 'OPEN', ...}
+E         
+E         Omitting 6 identical items, use -vv to show
+E         Differing items:
+E         {'title': 'Valid New Title'} != {'title': 'Initial issue'}
+E         Use -v to get more diff
+
+tests\test_issues.py:456: AssertionError
+_______ test_patch_issue_atomicity_valid_priority_with_invalid_assignee _______
+
+client = <starlette.testclient.TestClient object at 0x0000028D5FD2D480>
+
+    def test_patch_issue_atomicity_valid_priority_with_invalid_assignee(
+        client: TestClient,
+    ) -> None:
+        """FR: FR-03, FR-05, FR-07.
+        AC: AC-04-02, AC-04-03.
+        \u041e\u0447\u0456\u043a\u0443\u0432\u0430\u043d\u0438\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0456\u0441\u043b\u044f \u043f\u043e\u0432\u0442\u043e\u0440\u043d\u043e\u0433\u043e GET: GET /issues/{id} \u043f\u043e\u0432\u0435\u0440\u0442\u0430\u0454 200 OK,
+        \u043f\u043e\u0447\u0430\u0442\u043a\u043e\u0432\u0438\u0439 priority="low" \u0442\u0430 \u043f\u043e\u0447\u0430\u0442\u043a\u043e\u0432\u0438\u0439 assignee_id=1 \u0437\u0430\u043b\u0438\u0448\u0430\u044e\u0442\u044c\u0441\u044f \u0431\u0435\u0437 \u0437\u043c\u0456\u043d.
+        """
+        create_resp = client.post(
+            "/issues",
+            json={
+                "title": "Atomic patch check",
+                "description": "Verify all-or-nothing validation",
+                "priority": "low",
+                "assignee_id": 1,
+            },
+        )
+        assert create_resp.status_code == 201
+        initial_issue = create_resp.json()
+        issue_id = initial_issue["id"]
+    
+        patch_resp = client.patch(
+            f"/issues/{issue_id}",
+            json={"priority": "high", "assignee_id": 999},
+        )
+        assert patch_resp.status_code == 422
+        assert isinstance(patch_resp.json().get("detail"), list)
+    
+        get_resp = client.get(f"/issues/{issue_id}")
+        assert get_resp.status_code == 200
+        persisted = get_resp.json()
+>       assert persisted["priority"] == "low"
+E       AssertionError: assert 'high' == 'low'
+E         
+E         - low
+E         + high
+
+tests\test_lr3_extensions.py:42: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\\University\\4thCourse\\1stTerm\\\u0428\u0443\u041fi\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_issues.py::test_t14_patch_atomicity_forbidden_fields_and_status_rejection[payload0]
+FAILED tests/test_lr3_extensions.py::test_patch_issue_atomicity_valid_priority_with_invalid_assignee
+2 failed, 143 passed, 1 warning in 6.03s
