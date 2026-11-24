@@ -102,7 +102,7 @@ def insert_issue(
     try:
         with conn:
             cursor = conn.execute(
-                f"""
+                """
                 INSERT INTO issues (
                     title,
                     description,
@@ -111,9 +111,9 @@ def insert_issue(
                     assignee_id,
                     created_at
                 )
-                VALUES ('{title}', ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (description, status, priority, assignee_id, created_at),
+                (title, description, status, priority, assignee_id, created_at),
             )
             issue_id = cursor.lastrowid
         row = conn.execute(
