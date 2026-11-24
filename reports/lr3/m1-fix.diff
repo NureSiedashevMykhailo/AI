@@ -1,0 +1,12 @@
+diff --git a/app/services.py b/app/services.py
+index 32ff72e..4f563ea 100644
+--- a/app/services.py
++++ b/app/services.py
+@@ -29,7 +29,6 @@ ALLOWED_STATUS_TRANSITIONS: dict[IssueStatus, frozenset[IssueStatus]] = {
+         IssueStatus.CLOSED,
+     }),
+     IssueStatus.CLOSED: frozenset({
+-        IssueStatus.OPEN,
+         IssueStatus.CLOSED,
+     }),
+ }

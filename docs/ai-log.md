@@ -424,3 +424,75 @@
   * `.venv\Scripts\python.exe -m pytest -q` → `135 passed, 1 warning in 6.07s` (після фінального редагування — повторний прогін).
   * `.venv\Scripts\python.exe -m ruff check app tests --select E4,E7,E9,F,I` → `All checks passed!`.
 * **Пов'язаний артефакт / Статус**: `app/services.py`, `docs/traceability.csv`, `docs/experiment-lr2.csv`, `docs/lab-02.md`, `README.md`, `docs/ai-log.md` — оновлено та перевірено (коміт не виконувався — рішення за оператором).
+
+
+---
+
+# Журнал взаємодії — ЛР-03 «Тестування, мутаційний аналіз, безпека та верифікація AI»
+
+## Запис 19. Аудит покриття T0 та генерація пакета тестів `tests/test_lr3_extensions.py` (Кроки 1–4, 6 ЛР-03)
+
+* **Дата**: 24.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Carbon (High)
+* **Активність Skill**: `tracker-slice` — **не активовано** (заборона редагування `app/` та наявних тестів; цільова генерація окремого тестового пакета розширень ЛР-03 із попереднім збереженням первинної чернетки).
+* **Мета**: Зіставити базовий набір `T0` (`135` тестів) із критеріями приймання в `docs/requirements.md` і `docs/api-contract.md`, згенерувати 8 точкових тестів у `tests/test_lr3_extensions.py` і зберегти невідредагований первинний код у `reports/lr3/t-ai-draft.txt` до першого запуску `pytest`.
+* **Переданий контекст**: `docs/requirements.md`, `docs/api-contract.md`, `docs/traceability.csv`, `app/*.py`, `tests/*.py`, `reports/lr3/coverage-t0.json`.
+* **Ключовий запит (Prompt)**:
+  > «Зістав наявні тести у tests/ (набір T0) з критеріями приймання у docs/requirements.md та docs/api-contract.md. Напиши один пакет нових тестів pytest у новому файлі tests/test_lr3_extensions.py — суворо від 6 до 8 тестових випадків загалом (враховуючи кожен параметризований випадок)... ПЕРЕД будь-яким запуском pytest чи редагуванням збережи точний первинний код згенерованих тестів у файл reports/lr3/t-ai-draft.txt.»
+* **Рішення щодо кожного з 8 згенерованих AI-тестів (`reports/lr3/t-ai-draft.txt`)**:
+  1. `test_patch_issue_atomicity_valid_priority_with_invalid_assignee` (`FR-03, FR-05, FR-07` / `AC-04-02, AC-04-03`) — **Прийнято без правок**: перевіряє `422` на `{"priority": "high", "assignee_id": 999}` та збереження `priority="low"` і `assignee_id=1` після повторного `GET`.
+  2. `test_create_and_get_issue_with_apostrophe_in_title` (`FR-01, FR-02, FR-07` / `AC-01-01, AC-03-01`) — **Прийнято без правок**: перевіряє `201` на `POST /issues` із `{"title": "O'Brien"}` та точний збіг рядка `"O'Brien"` після повторного `GET /issues/{id}`.
+  3. `test_closed_issue_rejects_reopen_transitions[OPEN]` (`FR-04` / `AC-05-02, AC-06-02`) — **Прийнято без правок**: ізольовано перевіряє `409 Conflict` для `CLOSED → OPEN` та збереження `status="CLOSED"` після повторного `GET`.
+  4. `test_closed_issue_rejects_reopen_transitions[IN_PROGRESS]` (`FR-04` / `AC-05-02, AC-06-02`) — **Прийнято без правок**: ізольовано перевіряє `409 Conflict` для `CLOSED → IN_PROGRESS` та збереження `status="CLOSED"` після повторного `GET`.
+  5. `test_db_update_issue_empty_updates_returns_existing_row` (`FR-03, FR-07` / `AC-03-01`, §6 п. 3) — **Прийнято без правок**: закриває `app/database.py:182` (`updates == {}`) і звіряє незмінність запису через повторний `GET`.
+  6. `test_db_update_issue_unsupported_column_raises_value_error` (`FR-03, FR-07` / `AC-04-02`, §6 п. 4) — **Прийнято без правок**: закриває allowlist-захист `app/database.py:186` (`ValueError` при спробі оновити `status`) і звіряє збереження `OPEN` через повторний `GET`.
+  7. `test_patch_issue_returns_404_when_row_missing_on_db_update` (`FR-02, FR-03, FR-07` / `AC-03-02`) — **Прийнято без правок**: закриває `app/database.py:200` та `app/services.py:132` (`rowcount == 0 → 404`) із перевіркою `404` на повторному `GET /issues/999`.
+  8. `test_patch_status_returns_404_when_row_missing_on_db_status_update` (`FR-02, FR-04, FR-07` / `AC-03-02`) — **Прийнято без правок**: закриває `app/database.py:223` та `app/services.py:158` (`rowcount == 0 → 404`) із перевіркою `404` на повторному `GET /issues/999`.
+* **Ручна перевірка та власне доповнення студента до `T1`**:
+  * Звірено оракули кожного з 8 AI-тестів із `docs/requirements.md` та `docs/api-contract.md`; `diff` між `reports/lr3/t-ai-draft.txt` та першими 8 тестами у `tests/test_lr3_extensions.py` порожній (`0` правок).
+  * Студентом вручну додано ще 2 тести (`test_student_health_endpoint_returns_ok` для покриття `app/main.py:24` і `test_student_patch_issue_preserves_apostrophe_in_title` для перевірки апострофа при `PATCH /issues/{id}`), що сформувало набір `T1` зі `145` тестів (`319/319` інструкцій `app/` — `100.0%` у `reports/lr3/coverage-t1.json`).
+* **Пов'язаний артефакт / Commit**: `reports/lr3/t-ai-draft.txt`, `tests/test_lr3_extensions.py`, `reports/lr3/coverage-t1.json` | Commit: `3a40ed8` (`3a40ed818c2ab524a98cf1b16b1abe7af2deec2b`).
+
+---
+
+## Запис 20. Підготовка контрольованих мутацій `M1`, `M2`, `M3` та мутаційний експеримент (Крок 5 ЛР-03)
+
+* **Дата**: 24.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Carbon (High)
+* **Мета**: Створити три ізольовані нееквівалентні мутації в окремих гілках (`lr3-m1`, `lr3-m2`, `lr3-m3`) і порівняти здатність наборів `T0` та `T1` виявляти дефекти бізнес-правил, атомарності та безпеки SQL.
+* **Що реалізовано в ізольованих гілках та перевірено вручну**:
+  * **Мутація `M1` (`lr3-m1`, `16fa4c7`)**: у `app/services.py` дозволено перехід `CLOSED → OPEN` (`200 OK`). Виявлено і в `T0` (`t0-m1.log`: падіння `test_t08_*`), і в `T1` (`t1-m1.log`: падіння `test_t08_*` та `test_closed_issue_rejects_reopen_transitions[OPEN]`).
+  * **Мутація `M2` (`lr3-m2`, `31d16b2`)**: у `app/services.py::update_issue` поля `(title, description, priority)` записуються в SQLite до перевірки існування `assignee_id` (при `{"priority": "high", "assignee_id": 999}` повертається `422`, але `priority="high"` уже збережено в БД). Виявлено в `T0` (`t0-m2.log`: `test_t14_*[payload0]`) та `T1` (`t1-m2.log`: додатково `test_patch_issue_atomicity_valid_priority_with_invalid_assignee`).
+  * **Мутація `M3` (`lr3-m3`, `dd9989a`)**: у `app/database.py::insert_issue` значення `title` підставлено через f-string `VALUES ('{title}', ?, ?, ?, ?, ?)`. Набір `T0` пропустив дефект (`t0-m3.log`: `135 passed`), тоді як `T1` виявив його (`t1-m3.log`: `sqlite3.OperationalError` на `"O'Brien"`), а `Bandit` зафіксував `B608` на рядках `105–115` (`reports/lr3/bandit-m3.json`).
+* **Ручна перевірка**: для кожної гілки перевірено `git diff` (відсутність змін у тестах чи сторонніх модулях) і збережено повні логи прогонів `T0`/`T1`. Підсумковий `Mutation Score`: `T0 = 2/3 (66.7%)`, `T1 = 3/3 (100.0%)`.
+
+---
+
+## Запис 21. Виправлення дефекту `M1` із застосуванням `Skill tracker-slice v1` (Крок 7 ЛР-03)
+
+* **Дата**: 24.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Carbon (High)
+* **Активність Skill**: `tracker-slice` (`v1`, **Зріз B — Зміни й стани**) — **активовано** в режимі чату з передачею симптому падіння тестів і гіпотези студента.
+* **Ключовий запит (Prompt)**:
+  > «Застосуй Skill tracker-slice (v1, зріз B — зміна статусу заявки) для виправлення дефекту у app/services.py. Симптом і вивід тесту: Тести test_t08_status_transition_matrix_and_idempotency та test_closed_issue_rejects_reopen_transitions[OPEN] падають із AssertionError: assert 200 == 409... Моя гіпотеза: У матриці дозволених переходів статусів у app/services.py помилково дозволено перехід зі стану CLOSED у OPEN...»
+* **Хід виконання за процедурою Skill та ручна перевірка**:
+  1. Агент визначив Зріз B за `.agents/skills/tracker-slice/references/slices.md`, вичитав лише §2.6–2.7 `docs/api-contract.md` та `US-04..US-06` і Розділ 5 `docs/requirements.md`, підтвердив гіпотезу за `AC-05-02` / `AC-06-02`, сформував план із 4 пунктів і **зупинився на кроці 4 до підтвердження оператором**.
+  2. Після підтвердження («Да») видалено рядок `IssueStatus.OPEN` із `ALLOWED_STATUS_TRANSITIONS[IssueStatus.CLOSED]` у `app/services.py` (`reports/lr3/m1-fix.diff`, `-1` рядок) без модифікації тестів.
+  3. Ручна перевірка підтвердила повернення `409 Conflict` на `CLOSED → OPEN`, збереження статусу `"CLOSED"` після повторного `GET`, проходження повного набору `T1` (`145 passed` у `reports/lr3/t1-m1-fixed.log`) і чистий вивід `ruff`.
+* **Пов'язаний артефакт / Commit**: `app/services.py`, `reports/lr3/m1-fix.diff`, `reports/lr3/t1-m1-fixed.log` | Гілка `lr3-m1`, Commit: `4a08626`.
+
+---
+
+## Запис 22. Виправлення SQL-дефекту `M3` прямим запитом та фіналізація звітності ЛР-03 (Кроки 8, 10–12 ЛР-03)
+
+* **Дата**: 24.11.2026
+* **Учасник**: Siedashev Mykhailo
+* **Інструмент / Модель**: Google Antigravity IDE (Режим: Agentic Mode) — Gemini 4 Carbon (High)
+* **Активність Skill**: `tracker-slice` — **не активовано** (точкове виправлення параметризації SQL за прямим запитом і подальше формування звітної документації ЛР-03).
+* **Що виконано та перевірено вручну**:
+  * **Виправлення `M3` (`5ccd73d`, гілка `lr3-m3`)**: у `app/database.py::insert_issue` f-string `VALUES ('{title}', ?, ?, ?, ?, ?)` замінено на параметризований запит `VALUES (?, ?, ?, ?, ?, ?)` із передачею `(title, description, status, priority, assignee_id, created_at)` (`reports/lr3/m3-fix.diff`). Повторний запуск `Bandit` (`reports/lr3/bandit-m3-fixed.json`) підтвердив усунення `B608` у `insert_issue` (`0` попереджень для цієї функції; залишився лише відомий хибнопозитивний запис на рядку `196` з білим списком колонок `UPDATABLE_ISSUE_COLUMNS`, який вручну класифіковано як `FP` у реєстрі Кроку 11), а `pytest` показав `145 passed` (`reports/lr3/t1-m3-fixed.log`).
+  * **Документація ЛР-03**: створено `docs/lab-03.md`, додано 10 рядків трасування для всіх тестів `tests/test_lr3_extensions.py` у `docs/traceability.csv` та додано Записи 19–22 у `docs/ai-log.md`. Звірено всі хеші комітів, дроби покриття з `coverage-t0.json` / `coverage-t1.json` та точність `TP / (TP + FP) = 5 / 6 (83.3%)`.
+* **Пов'язаний артефакт / Статус**: `docs/lab-03.md`, `docs/ai-log.md`, `docs/traceability.csv` — підготовлено та перевірено (рішення щодо фінального коміту за оператором).

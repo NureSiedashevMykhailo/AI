@@ -1,0 +1,165 @@
+........................................................................ [ 49%]
+.............................................................F.......... [ 99%]
+.                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_create_and_get_issue_with_apostrophe_in_title ______________
+
+client = <starlette.testclient.TestClient object at 0x000001B0D45569C0>
+
+    def test_create_and_get_issue_with_apostrophe_in_title(client: TestClient) -> None:
+        """FR: FR-01, FR-02, FR-07.
+        AC: AC-01-01, AC-03-01.
+        \u041e\u0447\u0456\u043a\u0443\u0432\u0430\u043d\u0438\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0456\u0441\u043b\u044f \u043f\u043e\u0432\u0442\u043e\u0440\u043d\u043e\u0433\u043e GET: GET /issues/{id} \u043f\u043e\u0432\u0435\u0440\u0442\u0430\u0454 200 OK
+        \u0442\u0430 \u0442\u043e\u0447\u043d\u0438\u0439 \u0440\u044f\u0434\u043e\u043a title="O'Brien" \u0431\u0435\u0437 \u0435\u043a\u0440\u0430\u043d\u0443\u0432\u0430\u043d\u043d\u044f \u0447\u0438 \u0441\u043f\u043e\u0442\u0432\u043e\u0440\u0435\u043d\u044c.
+        """
+>       create_resp = client.post("/issues", json={"title": "O'Brien"})
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_lr3_extensions.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\httpx\_client.py:1144: in post
+    return self.request(
+.venv\Lib\site-packages\starlette\testclient.py:518: in request
+    return super().request(
+.venv\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:928: in send
+    raise exc
+.venv\Lib\site-packages\httpx\_client.py:922: in send
+    response.read()
+.venv\Lib\site-packages\httpx\_models.py:881: in read
+    self._content = b"".join(self.iter_bytes())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_models.py:897: in iter_bytes
+    for raw_bytes in self.iter_raw():
+                     ^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_models.py:951: in iter_raw
+    for raw_stream_bytes in self.stream:
+                            ^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:153: in __iter__
+    for chunk in self._stream:
+                 ^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:384: in iter_body
+    exit_stack.close()
+C:\Users\HardPC\AppData\Local\Programs\Python\Python313\Lib\contextlib.py:627: in close
+    self.__exit__(None, None, None)
+C:\Users\HardPC\AppData\Local\Programs\Python\Python313\Lib\contextlib.py:619: in __exit__
+    raise exc
+C:\Users\HardPC\AppData\Local\Programs\Python\Python313\Lib\contextlib.py:604: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:399: in close_app
+    raise exception
+.venv\Lib\site-packages\anyio\from_thread.py:272: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:366: in run_app
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:683: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2811: in app
+    await route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1865: in _handle_selected
+    await original_route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1328: in handle
+    await effective_context.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\routing.py:745: in app
+    raw_response = await run_endpoint_function(
+.venv\Lib\site-packages\fastapi\routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+.venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2779: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:1124: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\telemetry\_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+app\routes.py:35: in create_issue_endpoint
+    return services.create_issue(_get_db_path(request), payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\services.py:61: in create_issue
+    row = database.insert_issue(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+db_path = 'C:\\Users\\HardPC\\AppData\\Local\\Temp\\pytest-of-myk24\\pytest-14\\test_create_and_get_issue_with0\\test.db'
+title = "O'Brien", description = '', status = 'OPEN', priority = 'medium'
+assignee_id = None, created_at = '2026-11-24T15:46:47Z'
+
+    def insert_issue(
+        db_path: str | Path,
+        *,
+        title: str,
+        description: str,
+        status: str,
+        priority: str,
+        assignee_id: int | None,
+        created_at: str,
+    ) -> dict[str, Any]:
+        """Insert a new issue row and return the persisted record."""
+        conn = get_connection(db_path)
+        try:
+            with conn:
+>               cursor = conn.execute(
+                    f"""
+                    INSERT INTO issues (
+                        title,
+                        description,
+                        status,
+                        priority,
+                        assignee_id,
+                        created_at
+                    )
+                    VALUES ('{title}', ?, ?, ?, ?, ?)
+                    """,
+                    (description, status, priority, assignee_id, created_at),
+                )
+E               sqlite3.OperationalError: near "Brien": syntax error
+
+app\database.py:104: OperationalError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\\University\\4thCourse\\1stTerm\\\u0428\u0443\u041fi\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_lr3_extensions.py::test_create_and_get_issue_with_apostrophe_in_title
+1 failed, 144 passed, 1 warning in 5.80s

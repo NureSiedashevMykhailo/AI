@@ -18,6 +18,16 @@ FR-06,US-07 / AC-07-02,POST /issues/{id}/comments (API Layer / Schemas),tests/te
 FR-06,US-07 / AC-07-03,GET /issues/{id}/comments (Service Layer / Repository),tests/test_comments.py::test_t12_list_comments_sorted_chronologically_and_isolated_per_issue; tests/test_comments.py::test_t12_list_comments_empty_and_nonexistent_issue
 FR-07,US-01 / AC-01-03,Repository / SQLite (File DB),tests/test_issues.py::test_t13_sqlite_persistence_across_restarts; tests/test_comments.py::test_t12_comments_persist_across_app_restarts; tests/test_users.py::test_create_app_does_not_initialize_db_before_lifespan
 FR-07,US-04 / AC-04-02,PATCH /issues/{id} (API Layer / Repository),tests/test_issues.py::test_t14_patch_atomicity_forbidden_fields_and_status_rejection; tests/test_issues.py::test_t14_empty_patch_is_noop_for_open_and_409_for_closed
+FR-03 & FR-05 & FR-07,US-04 / AC-04-02 & AC-04-03,PATCH /issues/{id} & GET /issues/{id} (API Layer / Schemas),tests/test_lr3_extensions.py::test_patch_issue_atomicity_valid_priority_with_invalid_assignee
+FR-01 & FR-02 & FR-07,US-01 / AC-01-01 & US-03 / AC-03-01,POST /issues & GET /issues/{id} (Repository SQLite),tests/test_lr3_extensions.py::test_create_and_get_issue_with_apostrophe_in_title
+FR-04,US-05 / AC-05-02 & US-06 / AC-06-02,PATCH /issues/{id}/status & GET /issues/{id} (Service Layer),tests/test_lr3_extensions.py::test_closed_issue_rejects_reopen_transitions[OPEN]
+FR-04,US-05 / AC-05-02 & US-06 / AC-06-02,PATCH /issues/{id}/status & GET /issues/{id} (Service Layer),tests/test_lr3_extensions.py::test_closed_issue_rejects_reopen_transitions[IN_PROGRESS]
+FR-03 & FR-07,US-03 / AC-03-01 (§6.3 Empty Update),Repository update_issue & GET /issues/{id},tests/test_lr3_extensions.py::test_db_update_issue_empty_updates_returns_existing_row
+FR-03 & FR-07,US-04 / AC-04-02 (§6.4 Column Allowlist),Repository update_issue & GET /issues/{id},tests/test_lr3_extensions.py::test_db_update_issue_unsupported_column_raises_value_error
+FR-02 & FR-03 & FR-07,US-03 / AC-03-02 (§7.2 Missing Row on Update),PATCH /issues/{id} & GET /issues/{id} (Service / Repository),tests/test_lr3_extensions.py::test_patch_issue_returns_404_when_row_missing_on_db_update
+FR-02 & FR-04 & FR-07,US-03 / AC-03-02 (§7.2 Missing Row on Status Update),PATCH /issues/{id}/status & GET /issues/{id} (Service / Repository),tests/test_lr3_extensions.py::test_patch_status_returns_404_when_row_missing_on_db_status_update
+NFR-01,API Contract §2.1 (Healthcheck),GET /health (API Layer / app/main.py),tests/test_lr3_extensions.py::test_student_health_endpoint_returns_ok
+FR-03 & FR-07,US-04 / AC-04-01,PATCH /issues/{id} & GET /issues/{id} (Repository SQLite),tests/test_lr3_extensions.py::test_student_patch_issue_preserves_apostrophe_in_title
 FR-08,US-08 / AC-08-01 (Future / LR4),ClassifierService (Stub),test_classifier_suggestion_does_not_mutate_issue_lr4
 
 # Coverage = (7 / 7) * 100% = 100%
